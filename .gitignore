@@ -1,0 +1,14 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# SQLite local
+app.db
+
+# Entornos / claves locales
+.env
+*.env
+
+# Uvicorn logs (si los generas)
+*.log
