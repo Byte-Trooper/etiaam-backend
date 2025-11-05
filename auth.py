@@ -30,3 +30,4 @@ def create_access_token(data: dict):
 
 def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+

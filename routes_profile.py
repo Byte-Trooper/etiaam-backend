@@ -1,0 +1,63 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from db import SessionLocal
+from models import User, Profile, Evaluation
+from schemas import ProfileIn, ProfileOut, EvaluationIn, EvaluationOut
+from datetime import datetime
+
+router = APIRouter(prefix="/api", tags=["API"])
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# --- Perfil del usuario ---
+@router.post("/profile", response_model=ProfileOut)
+def create_or_update_profile(payload: ProfileIn, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == payload.user_id).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+    
+    profile = db.query(Profile).filter(Profile.user_id == payload.user_id).first()
+    if not profile:
+        profile = Profile(**payload.dict())
+        db.add(profile)
+    else:
+        for key, value in payload.dict().items():
+            setattr(profile, key, value)
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+@router.get("/profile/{user_id}", response_model=ProfileOut)
+def get_profile(user_id: int, db: Session = Depends(get_db)):
+    profile = db.query(Profile).filter(Profile.user_id == user_id).first()
+    if not profile:
+        raise HTTPException(404, "Perfil no encontrado")
+    return profile
+
+# --- Evaluaciones ---
+@router.post("/evaluations", response_model=EvaluationOut)
+def create_evaluation(payload: EvaluationIn, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == payload.user_id).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+
+    evaluation = Evaluation(
+        user_id=payload.user_id,
+        test_type=payload.test_type,
+        score=payload.score,
+        fecha_aplicacion=datetime.utcnow(),
+        observaciones=payload.observaciones
+    )
+    db.add(evaluation)
+    db.commit()
+    db.refresh(evaluation)
+    return evaluation
+
+@router.get("/evaluations/{user_id}", response_model=list[EvaluationOut])
+def get_user_evaluations(user_id: int, db: Session = Depends(get_db)):
+    return db.query(Evaluation).filter(Evaluation.user_id == user_id).all()
