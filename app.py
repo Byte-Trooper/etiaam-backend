@@ -6,10 +6,15 @@ from models import User, Consent
 from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
 
+# 👇 De momento, mantenla activa hasta confirmar todas las tablas
 Base.metadata.create_all(bind=engine)
+
+# 👇 Nueva importación de tus rutas extendidas
+from routes_profile import router as profile_router
+
 app = FastAPI(title="ETIAAM API", version="1.0.0")
 
-# CORS abierto en desarrollo (en producción restringe origins)
+# CORS abierto para desarrollo
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,8 +23,10 @@ app.add_middleware(
 
 def get_db():
     db = SessionLocal()
-    try: yield db
-    finally: db.close()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @app.get("/health")
 def health(): return {"ok": True}
@@ -50,7 +57,8 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
         full_name=payload.full_name,
         user_type=payload.user_type
     )
-    db.add(user); db.flush()
+    db.add(user)
+    db.flush()
 
     consent = Consent(
         user_id=user.id,
@@ -59,7 +67,9 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
         ip_address=req.client.host if req.client else None,
         user_agent=req.headers.get("user-agent")
     )
-    db.add(consent); db.commit(); db.refresh(user)
+    db.add(consent)
+    db.commit()
+    db.refresh(user)
 
     token = create_access_token({"sub": str(user.id), "user_type": user.user_type})
     return TokenOut(
@@ -81,3 +91,6 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
         full_name=user.full_name,
         email=user.email
     )
+
+# 👇 Incluye tus nuevas rutas API (perfil y evaluaciones)
+app.include_router(profile_router)

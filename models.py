@@ -81,4 +81,7 @@ class Evaluation(Base):
     observaciones = Column(Text)
 
     user = relationship("User", back_populates="evaluations")
+<<<<<<< HEAD
 
+=======
+>>>>>>> etiaam-update
