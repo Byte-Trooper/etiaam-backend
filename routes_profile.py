@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from db import SessionLocal
+from db import get_db
 from models import User, Profile, Evaluation
 from schemas import ProfileIn, ProfileOut, EvaluationIn, EvaluationOut
 from datetime import datetime
+from auth import get_current_user
 
 router = APIRouter(prefix="/api", tags=["API"])
 
 def get_db():
-    db = SessionLocal()
+    db = get_db()
     try:
         yield db
     finally:
@@ -61,3 +62,16 @@ def create_evaluation(payload: EvaluationIn, db: Session = Depends(get_db)):
 @router.get("/evaluations/{user_id}", response_model=list[EvaluationOut])
 def get_user_evaluations(user_id: int, db: Session = Depends(get_db)):
     return db.query(Evaluation).filter(Evaluation.user_id == user_id).all()
+
+@router.get("/me")
+def get_my_profile(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Devuelve la información básica del usuario autenticado"""
+    user = db.query(User).filter(User.id == current_user["id"]).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
+    return {
+        "id": user.id,
+        "email": user.email,
+        "full_name": user.full_name,
+        "user_type": user.user_type
+    }

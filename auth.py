@@ -1,8 +1,10 @@
 # auth.py
 import os, hashlib
 from datetime import datetime, timedelta
-from jose import jwt
+from jose import jwt, JWTError
 from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 
 # Usa Argon2 en lugar de bcrypt
 pwd_ctx = CryptContext(
@@ -31,3 +33,17 @@ def create_access_token(data: dict):
 def sha256_hex(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    """Decodifica el token JWT y devuelve la info del usuario autenticado"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+        user_id = int(payload.get("sub"))
+        user_type = payload.get("user_type")
+        return {"id": user_id, "user_type": user_type}
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado"
+        )

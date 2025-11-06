@@ -5,6 +5,7 @@ from db import Base, engine, SessionLocal
 from models import User, Consent
 from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
+from routes_profile import router as profile_router
 
 # 👇 De momento, mantenla activa hasta confirmar todas las tablas
 Base.metadata.create_all(bind=engine)
