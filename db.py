@@ -1,15 +1,20 @@
-import os
+# db.py
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+# Lee la URL desde la variable de entorno (Render -> Environment)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={
-        "ssl": {"ssl_ca": "/etc/ssl/cert.pem"}
-    } if DATABASE_URL.startswith("mysql") else {}
-)
-
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# 🔹 Nueva función: aquí sí definimos get_db()
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
