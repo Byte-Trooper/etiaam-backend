@@ -64,7 +64,10 @@ def get_user_evaluations(user_id: int, db: Session = Depends(get_db)):
     return db.query(Evaluation).filter(Evaluation.user_id == user_id).all()
 
 @router.get("/me")
-def get_my_profile(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_my_profile(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """Devuelve la información básica del usuario autenticado"""
     user = db.query(User).filter(User.id == current_user["id"]).first()
     if not user:
