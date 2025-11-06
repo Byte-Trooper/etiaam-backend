@@ -1,8 +1,27 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
-# --- Perfil ---
+# --- AUTENTICACIÓN / REGISTRO ---
+class RegisterIn(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+    user_type: str
+    consent_version: str
+    consent_text: str
+
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenOut(BaseModel):
+    access_token: str
+    user_type: str
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+
+# --- PERFIL ---
 class ProfileIn(BaseModel):
     user_id: int
     nombre: Optional[str] = None
@@ -16,9 +35,9 @@ class ProfileIn(BaseModel):
 class ProfileOut(ProfileIn):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True   # Pydantic v2 (reemplaza orm_mode)
 
-# --- Evaluación ---
+# --- EVALUACIÓN ---
 class EvaluationIn(BaseModel):
     user_id: int
     test_type: str
@@ -29,4 +48,4 @@ class EvaluationOut(EvaluationIn):
     id: int
     fecha_aplicacion: datetime
     class Config:
-        orm_mode = True
+        from_attributes = True
