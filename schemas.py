@@ -23,7 +23,6 @@ class TokenOut(BaseModel):
 
 # --- PERFIL ---
 class ProfileIn(BaseModel):
-    user_id: int
     nombre: Optional[str] = None
     apellido: Optional[str] = None
     edad: Optional[int] = None
