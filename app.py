@@ -7,11 +7,7 @@ from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
 from routes_profile import router as profile_router
 
-# 👇 De momento, mantenla activa hasta confirmar todas las tablas
 Base.metadata.create_all(bind=engine)
-
-# 👇 Nueva importación de tus rutas extendidas
-from routes_profile import router as profile_router
 
 app = FastAPI(title="ETIAAM API", version="1.0.0")
 
@@ -19,10 +15,12 @@ app = FastAPI(title="ETIAAM API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    allow_credentials=True, 
+    allow_methods=["*"], 
+    allow_headers=["*"],
 )
 
-
+app.include_router(profile_router)
 
 @app.get("/health")
 def health(): return {"ok": True}
@@ -88,5 +86,3 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
         email=user.email
     )
 
-# 👇 Incluye tus nuevas rutas API (perfil y evaluaciones)
-app.include_router(profile_router)

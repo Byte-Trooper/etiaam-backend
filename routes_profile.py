@@ -6,7 +6,7 @@ from schemas import ProfileIn, ProfileOut, EvaluationIn, EvaluationOut
 from datetime import datetime
 from auth import get_current_user
 
-router = APIRouter(prefix="/api", tags=["API"])
+router = APIRouter(prefix="/api", tags=["Perfil"])
 
 def get_db():
     db = get_db()
@@ -68,10 +68,11 @@ def get_my_profile(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Devuelve la información básica del usuario autenticado."""
+    """Devuelve la información del usuario autenticado."""
     if not current_user or "id" not in current_user:
         raise HTTPException(status_code=401, detail="Token inválido o usuario no autenticado")
 
+    # ✅ Aquí db ya es una sesión válida
     user = db.query(User).filter(User.id == current_user["id"]).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
