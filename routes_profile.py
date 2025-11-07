@@ -8,12 +8,6 @@ from auth import get_current_user
 
 router = APIRouter(prefix="/api", tags=["Perfil"])
 
-def get_db():
-    db = get_db()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # --- Perfil del usuario ---
 @router.post("/profile", response_model=ProfileOut)
