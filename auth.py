@@ -36,14 +36,8 @@ def sha256_hex(text: str) -> str:
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
-    """Decodifica el token JWT y devuelve la info del usuario autenticado"""
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
-        user_id = int(payload.get("sub"))
-        user_type = payload.get("user_type")
-        return {"id": user_id, "user_type": user_type}
+        return {"id": int(payload.get("sub")), "user_type": payload.get("user_type")}
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido o expirado"
-        )
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")

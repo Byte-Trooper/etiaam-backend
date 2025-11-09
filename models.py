@@ -1,84 +1,78 @@
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey, DateTime, Float, Text, Table
-)
+# models.py
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db import Base
 
-# --- Tabla intermedia para relación muchos-a-muchos (profesional ↔ paciente) ---
-patients_professionals = Table(
-    "patients_professionals",
-    Base.metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("professional_id", Integer, ForeignKey("users.id")),
-    Column("patient_id", Integer, ForeignKey("users.id"))
-)
-
-# --- Usuario principal (paciente o profesional) ---
+# ================================================================
+# 🧩 USUARIOS
+# ================================================================
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(120), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    user_type = Column(String(20), nullable=False)  # 'paciente' o 'profesional'
     full_name = Column(String(120))
+    user_type = Column(String(50))  # 'paciente' | 'profesional'
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Relaciones
     profile = relationship("Profile", back_populates="user", uselist=False)
     evaluations = relationship("Evaluation", back_populates="user")
-    consents = relationship("Consent", back_populates="user")
 
-    # Profesionales pueden tener muchos pacientes y viceversa
-    patients = relationship(
-        "User",
-        secondary=patients_professionals,
-        primaryjoin=id == patients_professionals.c.professional_id,
-        secondaryjoin=id == patients_professionals.c.patient_id,
-        backref="professionals"
-    )
 
-# --- Información adicional de cada usuario ---
-class Profile(Base):
-    __tablename__ = "profiles"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    nombre = Column(String(120))
-    apellido = Column(String(120))
-    edad = Column(Integer)
-    genero = Column(String(50))
-    especialidad = Column(String(120))
-    telefono = Column(String(50))
-    direccion = Column(String(255))
-
-    user = relationship("User", back_populates="profile")
-
-# --- Consentimientos informados ---
+# ================================================================
+# 🧩 CONSENTIMIENTOS
+# ================================================================
 class Consent(Base):
     __tablename__ = "consents"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    version = Column(String(10))
-    text_hash = Column(String(64))
-    ip_address = Column(String(100))
+    version = Column(String(50))
+    text_hash = Column(String(255))
+    ip_address = Column(String(64))
     user_agent = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", back_populates="consents")
 
-# --- Evaluaciones de los instrumentos ---
+# ================================================================
+# 🧩 PERFILES (unificada para paciente y profesional)
+# ================================================================
+class Profile(Base):
+    __tablename__ = "profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+
+    # Campos comunes
+    nombre = Column(String(100))
+    apellido = Column(String(100))
+    edad = Column(Integer)
+    genero = Column(String(20))
+    telefono = Column(String(20))
+    direccion = Column(String(255))
+
+    # Campos adicionales (según tipo de usuario)
+    especialidad = Column(String(100))        # Profesionales
+    fecha_nacimiento = Column(String(50))     # Pacientes
+    nss = Column(String(50))                  # Pacientes
+    alergias = Column(Text)                   # Pacientes
+
+    user = relationship("User", back_populates="profile")
+
+
+# ================================================================
+# 🧩 EVALUACIONES
+# ================================================================
 class Evaluation(Base):
     __tablename__ = "evaluations"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))  # paciente o profesional
-    test_type = Column(String(50))  # 'Automanejo', 'Apoyo familiar', etc.
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    test_type = Column(String(100))  # Ejemplo: "Automanejo"
     score = Column(Float)
-    fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
     observaciones = Column(Text)
+    fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="evaluations")
-    
