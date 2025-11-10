@@ -71,6 +71,36 @@ def get_my_profile(
         "profile": profile.__dict__ if profile else None,
     }
 
+# --- Lista de pacientes (solo visible para profesionales) ---
+@router.get("/pacientes")
+def listar_pacientes(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Devuelve la lista de todos los pacientes (solo accesible para profesionales)."""
+    
+    # 🔒 Verificar que sea profesional
+    if not current_user or current_user.get("user_type") != "profesional":
+        raise HTTPException(status_code=403, detail="Acceso restringido a profesionales de salud")
+    
+    pacientes = (
+        db.query(User)
+        .filter(User.user_type == "paciente")
+        .all()
+    )
+
+    if not pacientes:
+        return []
+
+    # 🔹 Devolver información básica de los pacientes
+    return [
+        {
+            "id": p.id,
+            "full_name": p.full_name,
+            "email": p.email,
+            "user_type": p.user_type
+        }
+        for p in pacientes
+    ]
+
+
 
 # ================================================================
 # 🧩 EVALUACIONES
