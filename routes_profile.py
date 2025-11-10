@@ -105,25 +105,37 @@ def listar_pacientes(current_user: dict = Depends(get_current_user), db: Session
 # ================================================================
 # 🧩 EVALUACIONES
 # ================================================================
+from datetime import datetime
+
 @router.post("/evaluations", response_model=EvaluationOut)
-def create_evaluation(
-    payload: EvaluationIn,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    user_id = current_user["id"]
+def create_evaluation(payload: EvaluationIn, db: Session = Depends(get_db)):
+    # Si el usuario se obtiene del token, omite esta parte.
+    # Aquí solo se valida si el ID existe.
+    user = db.query(User).filter(User.id == payload.user_id).first()
+    if not user:
+        raise HTTPException(404, "Usuario no encontrado")
 
     evaluation = Evaluation(
-        user_id=user_id,
+        user_id=payload.user_id,
         test_type=payload.test_type,
         score=payload.score,
-        observaciones=payload.observaciones,
         fecha_aplicacion=datetime.utcnow(),
+        observaciones=payload.observaciones
     )
     db.add(evaluation)
     db.commit()
     db.refresh(evaluation)
-    return evaluation
+
+    # ✅ Convertimos el datetime a string para cumplir con el schema
+    return {
+        "id": evaluation.id,
+        "user_id": evaluation.user_id,
+        "test_type": evaluation.test_type,
+        "score": evaluation.score,
+        "fecha_aplicacion": evaluation.fecha_aplicacion.isoformat(),
+        "observaciones": evaluation.observaciones,
+    }
+
 
 
 @router.get("/evaluations/{user_id}", response_model=list[EvaluationOut])
