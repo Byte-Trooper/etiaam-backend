@@ -6,6 +6,7 @@ from models import User, Consent
 from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
 from routes_profile import router as profile_router
+from routes_evaluations import router as evaluations_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,6 +22,7 @@ app.add_middleware(
 )
 
 app.include_router(profile_router)
+app.include_router(evaluations_router) 
 
 @app.get("/health")
 def health(): return {"ok": True}
