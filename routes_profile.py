@@ -1,6 +1,7 @@
 # routes_profile.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime
 from db import get_db
 from models import User, Profile, Evaluation
 from schemas import ProfileIn, ProfileOut, EvaluationIn, EvaluationOut
@@ -105,28 +106,52 @@ def listar_pacientes(current_user: dict = Depends(get_current_user), db: Session
 # ================================================================
 # 🧩 EVALUACIONES
 # ================================================================
-from datetime import datetime
 
 @router.post("/evaluations", response_model=EvaluationOut)
-def create_evaluation(payload: EvaluationIn, db: Session = Depends(get_db)):
-    # Si el usuario se obtiene del token, omite esta parte.
-    # Aquí solo se valida si el ID existe.
-    user = db.query(User).filter(User.id == payload.user_id).first()
+def create_evaluation(
+    payload: EvaluationIn,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Crea una evaluación. Si el usuario es 'paciente', se asume su propio ID.
+    Si es 'profesional', debe incluir user_id (del paciente) en el payload.
+    """
+    # Determinar el ID del usuario
+    user_id = None
+    if current_user["user_type"] == "paciente":
+        user_id = current_user["id"]
+    elif current_user["user_type"] == "profesional":
+        # Si el profesional evalúa a un paciente, el campo user_id debe venir incluido
+        # (pero no está en el schema base, así que lo extraemos del dict crudo si viene)
+        try:
+            data = payload.dict()
+            user_id = data.get("user_id")
+        except Exception:
+            user_id = None
+
+        if not user_id:
+            raise HTTPException(400, "Debe especificar el ID del paciente a evaluar.")
+
+    # Validar existencia del usuario evaluado
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "Usuario no encontrado")
 
+    # Crear evaluación
     evaluation = Evaluation(
-        user_id=payload.user_id,
+        user_id=user_id,
         test_type=payload.test_type,
         score=payload.score,
         fecha_aplicacion=datetime.utcnow(),
-        observaciones=payload.observaciones
+        observaciones=payload.observaciones,
     )
+
     db.add(evaluation)
     db.commit()
     db.refresh(evaluation)
 
-    # ✅ Convertimos el datetime a string para cumplir con el schema
+    # Devolver como dict (convertimos fecha a str para el schema)
     return {
         "id": evaluation.id,
         "user_id": evaluation.user_id,
@@ -135,6 +160,7 @@ def create_evaluation(payload: EvaluationIn, db: Session = Depends(get_db)):
         "fecha_aplicacion": evaluation.fecha_aplicacion.isoformat(),
         "observaciones": evaluation.observaciones,
     }
+
 
 
 
