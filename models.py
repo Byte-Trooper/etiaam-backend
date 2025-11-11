@@ -58,7 +58,7 @@ class Profile(Base):
     fecha_nacimiento = Column(String(50))     # Pacientes
     nss = Column(String(50))                  # Pacientes
     alergias = Column(Text)                   # Pacientes
-    respuestas = Column(JSON)
+
     user = relationship("User", back_populates="profile")
 
 
@@ -70,8 +70,9 @@ class Evaluation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    test_type = Column(String(100))  # Ejemplo: "Automanejo"
+    test_type = Column(String(100))  # Ejemplo: "automanejo_paciente" | "automanejo_prof"
     score = Column(Float)
+    respuestas_json = Column(JSON, nullable=True)  # 🆕 Nuevo campo para respuestas individuales
     observaciones = Column(Text)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
