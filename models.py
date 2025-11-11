@@ -58,7 +58,7 @@ class Profile(Base):
     fecha_nacimiento = Column(String(50))     # Pacientes
     nss = Column(String(50))                  # Pacientes
     alergias = Column(Text)                   # Pacientes
-
+    respuestas = Column(JSON)
     user = relationship("User", back_populates="profile")
 
 

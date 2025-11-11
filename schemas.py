@@ -57,6 +57,7 @@ class EvaluationIn(BaseModel):
     user_id: Optional[int] = None 
     test_type: str
     score: float
+    respuestas: Optional[dict] = None 
     observaciones: Optional[str] = None
 
 
@@ -64,6 +65,7 @@ class EvaluationOut(EvaluationIn):
     id: int
     user_id: int
     fecha_aplicacion: str
+    respuestas: Optional[dict] = None 
 
     class Config:
         from_attributes = True

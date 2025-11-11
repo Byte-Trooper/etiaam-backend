@@ -17,11 +17,15 @@ def create_evaluation(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    """
+    Registra una nueva evaluación.
+    Ahora incluye almacenamiento del campo `respuestas_json` (lista de respuestas por pregunta).
+    """
     try:
         user_id = payload.get("user_id")
         test_type = payload.get("test_type")
         score = payload.get("score")
-        respuestas_json = payload.get("respuestas_json")
+        respuestas_json = payload.get("respuestas")  # 🆕 CAMBIO: antes 'respuestas_json'
         observaciones = payload.get("observaciones")
 
         if not user_id or not test_type:
@@ -29,17 +33,23 @@ def create_evaluation(
 
         evaluacion = Evaluation(
             user_id=user_id,
-            evaluador_id=current_user.get("id"),  # si es paciente será el mismo id
+            evaluador_id=current_user.get("id"),  # Si es paciente, es el mismo id
             test_type=test_type,
             score=score,
-            respuestas_json=json.dumps(respuestas_json) if respuestas_json else None,
+            respuestas_json=json.dumps(respuestas_json) if respuestas_json else None,  # 🆕 Guarda el JSON
             observaciones=observaciones,
             fecha_aplicacion=datetime.utcnow()
         )
+
         db.add(evaluacion)
         db.commit()
         db.refresh(evaluacion)
-        return {"status": "ok", "evaluation_id": evaluacion.id}
+
+        return {
+            "status": "ok",
+            "evaluation_id": evaluacion.id,
+            "message": "Evaluación registrada correctamente"
+        }
 
     except Exception as e:
         print("❌ Error en create_evaluation:", e)
@@ -49,12 +59,19 @@ def create_evaluation(
 # 🧩 Obtener todas las evaluaciones de un paciente
 @router.get("/{user_id}")
 def get_evaluations(user_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve todas las evaluaciones del paciente, incluyendo las respuestas JSON.
+    """
     evaluaciones = (
         db.query(Evaluation)
         .filter(Evaluation.user_id == user_id)
         .order_by(Evaluation.fecha_aplicacion.desc())
         .all()
     )
+
+    if not evaluaciones:
+        raise HTTPException(status_code=404, detail="No se encontraron evaluaciones")
+
     return [
         {
             "id": e.id,
@@ -62,7 +79,9 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
             "score": e.score,
             "evaluador_id": e.evaluador_id,
             "fecha_aplicacion": e.fecha_aplicacion,
-            "observaciones": e.observaciones
+            "observaciones": e.observaciones,
+            # 🆕 Devuelve el JSON parseado si existe
+            "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None
         }
         for e in evaluaciones
     ]
@@ -71,6 +90,10 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
 # 🧩 Comparar evaluación paciente vs profesional
 @router.get("/compare/{user_id}")
 def compare_evaluations(user_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve la última evaluación del paciente y del profesional,
+    incluyendo las respuestas individuales y la diferencia.
+    """
     paciente_eval = (
         db.query(Evaluation)
         .filter(Evaluation.user_id == user_id, Evaluation.evaluador_id == None)
@@ -88,16 +111,15 @@ def compare_evaluations(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Sin evaluaciones registradas")
 
     def format_eval(e: Optional[Evaluation]):
-        return (
-            {
-                "id": e.id,
-                "score": e.score,
-                "fecha": e.fecha_aplicacion,
-                "observaciones": e.observaciones,
-            }
-            if e
-            else None
-        )
+        if not e:
+            return None
+        return {
+            "id": e.id,
+            "score": e.score,
+            "fecha": e.fecha_aplicacion,
+            "observaciones": e.observaciones,
+            "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None,  # 🆕 Nuevo campo
+        }
 
     return {
         "paciente": format_eval(paciente_eval),
