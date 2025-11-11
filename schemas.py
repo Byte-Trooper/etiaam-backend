@@ -54,6 +54,7 @@ class ProfileOut(ProfileIn):
 # 🧩 EVALUACIONES
 # ================================================================
 class EvaluationIn(BaseModel):
+    user_id: Optional[int] = None 
     test_type: str
     score: float
     observaciones: Optional[str] = None
