@@ -166,4 +166,16 @@ def create_evaluation(
 
 @router.get("/evaluations/{user_id}", response_model=list[EvaluationOut])
 def get_user_evaluations(user_id: int, db: Session = Depends(get_db)):
-    return db.query(Evaluation).filter(Evaluation.user_id == user_id).all()
+    evaluations = db.query(Evaluation).filter(Evaluation.user_id == user_id).all()
+    results = []
+    for e in evaluations:
+        results.append({
+            "id": e.id,
+            "user_id": e.user_id,
+            "test_type": e.test_type,
+            "score": e.score,
+            "fecha_aplicacion": e.fecha_aplicacion.isoformat() if e.fecha_aplicacion else None,
+            "observaciones": e.observaciones,
+        })
+    return results
+
