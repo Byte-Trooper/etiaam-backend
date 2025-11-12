@@ -10,7 +10,9 @@ import json
 
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
-# 🧩 Crear o registrar una evaluación (versión MySQL segura)
+# ============================================================
+# 🧩 Crear o registrar una evaluación (versión MySQL validada)
+# ============================================================
 @router.post("/")
 def create_evaluation(
     payload: dict,
@@ -22,26 +24,26 @@ def create_evaluation(
         test_type = payload.get("test_type")
         score = payload.get("score")
         observaciones = payload.get("observaciones")
-        respuestas = payload.get("respuestas")  # llega como dict {"preguntas": [...]}
+        respuestas = payload.get("respuestas")  # dict {"preguntas": [...]}
 
         if not user_id or not test_type:
             raise HTTPException(status_code=400, detail="Faltan campos requeridos")
 
-        # ✅ Serializa el campo para que MySQL lo acepte
-        respuestas_serializadas = None
+        # ✅ Serializa correctamente las respuestas para MySQL
         if respuestas:
             try:
-                # Si ya viene como dict, conviértelo a string JSON
-                respuestas_serializadas = json.dumps(respuestas)
+                respuestas_serializadas = json.dumps(respuestas, ensure_ascii=False)
             except Exception:
                 respuestas_serializadas = str(respuestas)
+        else:
+            respuestas_serializadas = json.dumps({"preguntas": []})
 
         evaluacion = Evaluation(
             user_id=user_id,
             evaluador_id=current_user.get("id"),
             test_type=test_type,
             score=score,
-            respuestas_json=json.dumps(respuestas or {"preguntas": []}),   # <-- aquí se guarda correctamente
+            respuestas_json=respuestas_serializadas,  # ✅ aquí se guarda bien
             observaciones=observaciones,
             fecha_aplicacion=datetime.utcnow()
         )
@@ -51,7 +53,7 @@ def create_evaluation(
         db.refresh(evaluacion)
 
         print(f"✅ Evaluación guardada con ID {evaluacion.id}")
-        print(f"🧾 Respuestas: {respuestas_serializadas}")
+        print(f"🧾 Respuestas guardadas: {respuestas_serializadas}")
 
         return {"status": "ok", "evaluation_id": evaluacion.id}
 
@@ -61,8 +63,9 @@ def create_evaluation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
+# ============================================================
 # 🧩 Obtener todas las evaluaciones de un paciente
+# ============================================================
 @router.get("/{user_id}")
 def get_evaluations(user_id: int, db: Session = Depends(get_db)):
     """
@@ -86,14 +89,15 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
             "evaluador_id": e.evaluador_id,
             "fecha_aplicacion": e.fecha_aplicacion,
             "observaciones": e.observaciones,
-            # 🆕 Devuelve el JSON parseado si existe
             "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None
         }
         for e in evaluaciones
     ]
 
 
+# ============================================================
 # 🧩 Comparar evaluación paciente vs profesional
+# ============================================================
 @router.get("/compare/{user_id}")
 def compare_evaluations(user_id: int, db: Session = Depends(get_db)):
     """
@@ -124,7 +128,7 @@ def compare_evaluations(user_id: int, db: Session = Depends(get_db)):
             "score": e.score,
             "fecha": e.fecha_aplicacion,
             "observaciones": e.observaciones,
-            "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None,  # 🆕 Nuevo campo
+            "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None,
         }
 
     return {
