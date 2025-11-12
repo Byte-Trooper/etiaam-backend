@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 def create_evaluation(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    #current_user: dict = Depends(get_current_user)
 ):
     try:
         # 🟢 --- Debug inicial: confirmar si el endpoint se está ejecutando ---
@@ -51,13 +51,14 @@ def create_evaluation(
             "score": score,
             "respuestas_json": respuestas_serializadas,
             "observaciones": observaciones,
-            "evaluador_id": current_user.get("id"),
+            #"evaluador_id": current_user.get("id"),
         })
 
         # --- Creación de la instancia Evaluation ---
         evaluacion = Evaluation(
             user_id=user_id,
-            evaluador_id=current_user.get("id"),
+            #evaluador_id=current_user.get("id"),
+            evaluador_id=None,
             test_type=test_type,
             score=score,
             respuestas_json=respuestas_serializadas,
