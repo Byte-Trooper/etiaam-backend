@@ -10,9 +10,7 @@ import json
 
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
-# 🧩 Crear o registrar una evaluación
-@router.post("/")
-# 🧩 Crear o registrar una evaluación
+# 🧩 Crear o registrar una evaluación (versión MySQL segura)
 @router.post("/")
 def create_evaluation(
     payload: dict,
@@ -23,21 +21,27 @@ def create_evaluation(
         user_id = payload.get("user_id")
         test_type = payload.get("test_type")
         score = payload.get("score")
-        respuestas_json = payload.get("respuestas")  # ✅ viene como dict
         observaciones = payload.get("observaciones")
+        respuestas = payload.get("respuestas")  # llega como dict {"preguntas": [...]}
 
         if not user_id or not test_type:
             raise HTTPException(status_code=400, detail="Faltan campos requeridos")
 
-        # 🧠 Asegurar que se guarde siempre como JSON serializado
-        respuestas_serializadas = json.dumps(respuestas_json or {"preguntas": []})
+        # ✅ Serializa el campo para que MySQL lo acepte
+        respuestas_serializadas = None
+        if respuestas:
+            try:
+                # Si ya viene como dict, conviértelo a string JSON
+                respuestas_serializadas = json.dumps(respuestas)
+            except Exception:
+                respuestas_serializadas = str(respuestas)
 
         evaluacion = Evaluation(
             user_id=user_id,
             evaluador_id=current_user.get("id"),
             test_type=test_type,
             score=score,
-            respuestas_json=respuestas_serializadas,
+            respuestas_json=respuestas_serializadas,  # <-- aquí se guarda correctamente
             observaciones=observaciones,
             fecha_aplicacion=datetime.utcnow()
         )
@@ -46,10 +50,14 @@ def create_evaluation(
         db.commit()
         db.refresh(evaluacion)
 
+        print(f"✅ Evaluación guardada con ID {evaluacion.id}")
+        print(f"🧾 Respuestas: {respuestas_serializadas}")
+
         return {"status": "ok", "evaluation_id": evaluacion.id}
 
     except Exception as e:
         print("❌ Error en create_evaluation:", e)
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 
