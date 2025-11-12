@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db import Base
@@ -17,6 +17,7 @@ class User(Base):
     user_type = Column(String(50))  # 'paciente' | 'profesional'
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # 🔹 Relaciones
     profile = relationship("Profile", back_populates="user", uselist=False)
     evaluations = relationship("Evaluation", back_populates="user")
 
@@ -59,6 +60,7 @@ class Profile(Base):
     nss = Column(String(50))                  # Pacientes
     alergias = Column(Text)                   # Pacientes
 
+    # 🔹 Relación inversa
     user = relationship("User", back_populates="profile")
 
 
@@ -73,7 +75,9 @@ class Evaluation(Base):
     evaluador_id = Column(Integer, nullable=True)
     test_type = Column(String(100))
     score = Column(Float)
-    respuestas_json = Column(Text, nullable=True)   # ✅ clave final
+    respuestas_json = Column(Text, nullable=True)  # ✅ JSON serializado (texto)
     observaciones = Column(Text)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
+    # 🔹 Relación inversa hacia User
+    user = relationship("User", back_populates="evaluations")
