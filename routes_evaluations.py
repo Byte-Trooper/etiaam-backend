@@ -20,6 +20,7 @@ def create_evaluation(
     current_user: dict = Depends(get_current_user)
 ):
     try:
+        print("📩 Solicitud POST /api/evaluations recibida con payload:", payload)
         user_id = payload.get("user_id")
         test_type = payload.get("test_type")
         score = payload.get("score")

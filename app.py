@@ -27,6 +27,7 @@ app.add_middleware(
 # 🔹 Rutas
 app.include_router(profile_router)
 app.include_router(evaluations_router)
+print("✅ Routers cargados: /api/evaluations y /api/profile activos")
 
 
 @app.get("/health")
