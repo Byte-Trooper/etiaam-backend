@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 import json
 
-router = APIRouter(prefix="/api/evaluations/", tags=["Evaluaciones"])
+router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
 # ============================================================
 # 🧩 Crear o registrar una evaluación (con autenticación)
