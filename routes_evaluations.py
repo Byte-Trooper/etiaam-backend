@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db import get_db
 from models import Evaluation
-from auth import get_current_user
 from datetime import datetime
 from typing import Optional
 import json
@@ -11,30 +10,28 @@ import json
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
 # ============================================================
-# 🧩 Crear o registrar una evaluación (versión MySQL validada)
+# 🧩 Crear o registrar una evaluación
 # ============================================================
 @router.post("/")
 def create_evaluation(
     payload: dict,
-    db: Session = Depends(get_db),
-    #current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     try:
-        # 🟢 --- Debug inicial: confirmar si el endpoint se está ejecutando ---
         print("📩 Solicitud recibida en create_evaluation()")
         print("📤 Payload recibido:", payload)
 
-        # --- Extracción de datos del cuerpo JSON ---
+        # --- Extraer campos ---
         user_id = payload.get("user_id")
         test_type = payload.get("test_type")
         score = payload.get("score")
         observaciones = payload.get("observaciones")
-        respuestas = payload.get("respuestas")  # dict {"preguntas": [...]}
+        respuestas = payload.get("respuestas")
 
         if not user_id or not test_type:
             raise HTTPException(status_code=400, detail="Faltan campos requeridos")
 
-        # ✅ Serializa correctamente las respuestas para MySQL
+        # --- Serializar respuestas ---
         if respuestas:
             try:
                 respuestas_serializadas = json.dumps(respuestas, ensure_ascii=False)
@@ -43,21 +40,18 @@ def create_evaluation(
         else:
             respuestas_serializadas = json.dumps({"preguntas": []})
 
-        # 🟡 --- Debug: antes de insertar en la base de datos ---
         print("💾 Insertando en BD con los siguientes datos:")
         print({
             "user_id": user_id,
             "test_type": test_type,
             "score": score,
             "respuestas_json": respuestas_serializadas,
-            "observaciones": observaciones,
-            #"evaluador_id": current_user.get("id"),
+            "observaciones": observaciones
         })
 
-        # --- Creación de la instancia Evaluation ---
+        # --- Crear registro ---
         evaluacion = Evaluation(
             user_id=user_id,
-            #evaluador_id=current_user.get("id"),
             evaluador_id=None,
             test_type=test_type,
             score=score,
@@ -70,7 +64,6 @@ def create_evaluation(
         db.commit()
         db.refresh(evaluacion)
 
-        # 🟢 --- Debug: confirmación final ---
         print(f"✅ Evaluación guardada con ID {evaluacion.id}")
         print(f"🧾 Respuestas almacenadas: {respuestas_serializadas}")
 

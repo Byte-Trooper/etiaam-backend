@@ -24,11 +24,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🔹 Rutas
+# 🔹 Cargar routers
 app.include_router(profile_router)
 app.include_router(evaluations_router)
-print("✅ Routers cargados: /api/evaluations y /api/profile activos")
 
+print("✅ Routers cargados correctamente: /api/profile y /api/evaluations activos")
+
+# ============================================================
+# 🔹 Endpoints principales
+# ============================================================
 
 @app.get("/health")
 def health():
