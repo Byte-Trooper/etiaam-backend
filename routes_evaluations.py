@@ -106,7 +106,8 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
             "evaluador_id": e.evaluador_id,
             "fecha_aplicacion": e.fecha_aplicacion,
             "observaciones": e.observaciones,
-            "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None
+            "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None,
+            "respuestas_json": e.respuestas_json
         }
         for e in evaluaciones
     ]
