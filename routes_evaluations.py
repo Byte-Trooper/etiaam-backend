@@ -36,7 +36,7 @@ def create_evaluation(
             evaluador_id=current_user.get("id"),  # Si es paciente, es el mismo id
             test_type=test_type,
             score=score,
-            respuestas_json=json.dumps(respuestas_json) if respuestas_json else None,  # 🆕 Guarda el JSON
+            respuestas_json=json.dumps(respuestas_json or {"preguntas": []}),  # 🆕 Guarda el JSON
             observaciones=observaciones,
             fecha_aplicacion=datetime.utcnow()
         )
