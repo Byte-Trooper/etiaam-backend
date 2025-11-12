@@ -3,19 +3,21 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db import get_db
 from models import Evaluation
+from auth import get_current_user
 from datetime import datetime
 from typing import Optional
 import json
 
-router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
+router = APIRouter(prefix="/api/evaluations/", tags=["Evaluaciones"])
 
 # ============================================================
-# 🧩 Crear o registrar una evaluación
+# 🧩 Crear o registrar una evaluación (con autenticación)
 # ============================================================
 @router.post("/")
 def create_evaluation(
     payload: dict,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)  # ✅ ahora vuelve la autenticación
 ):
     try:
         print("📩 Solicitud recibida en create_evaluation()")
@@ -40,19 +42,25 @@ def create_evaluation(
         else:
             respuestas_serializadas = json.dumps({"preguntas": []})
 
+        # ✅ Determinar si la evaluación es del paciente o del profesional
+        evaluador_id = (
+            None if current_user.get("user_type") == "paciente" else current_user.get("id")
+        )
+
         print("💾 Insertando en BD con los siguientes datos:")
         print({
             "user_id": user_id,
             "test_type": test_type,
             "score": score,
             "respuestas_json": respuestas_serializadas,
-            "observaciones": observaciones
+            "observaciones": observaciones,
+            "evaluador_id": evaluador_id
         })
 
         # --- Crear registro ---
         evaluacion = Evaluation(
             user_id=user_id,
-            evaluador_id=None,
+            evaluador_id=evaluador_id,
             test_type=test_type,
             score=score,
             respuestas_json=respuestas_serializadas,
