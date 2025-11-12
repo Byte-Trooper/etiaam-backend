@@ -101,3 +101,16 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
         full_name=user.full_name,
         email=user.email
     )
+# ============================================================
+# 🔍 Diagnóstico temporal de rutas registradas
+# ============================================================
+from fastapi.routing import APIRoute
+
+@app.on_event("startup")
+async def list_routes_on_startup():
+    print("\n🚀 === LISTADO DE ENDPOINTS CARGADOS ===")
+    for route in app.routes:
+        if isinstance(route, APIRoute):
+            print(f"➡️  {route.name}: {route.path}")
+    print("=========================================\n")
+
