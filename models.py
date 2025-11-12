@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db import Base
@@ -72,7 +72,7 @@ class Evaluation(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     test_type = Column(String(100))  # Ejemplo: "automanejo_paciente" | "automanejo_prof"
     score = Column(Float)
-    respuestas_json = Column(JSON, nullable=True)  # 🆕 Nuevo campo para respuestas individuales
+    respuestas_json = Column(Text, nullable=True)
     observaciones = Column(Text)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 

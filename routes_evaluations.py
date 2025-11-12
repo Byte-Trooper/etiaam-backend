@@ -41,7 +41,7 @@ def create_evaluation(
             evaluador_id=current_user.get("id"),
             test_type=test_type,
             score=score,
-            respuestas_json=respuestas_serializadas,  # <-- aquí se guarda correctamente
+            respuestas_json=json.dumps(respuestas or {"preguntas": []}),   # <-- aquí se guarda correctamente
             observaciones=observaciones,
             fecha_aplicacion=datetime.utcnow()
         )
