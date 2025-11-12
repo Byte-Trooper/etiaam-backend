@@ -70,10 +70,10 @@ class Evaluation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    test_type = Column(String(100))  # Ejemplo: "automanejo_paciente" | "automanejo_prof"
+    evaluador_id = Column(Integer, nullable=True)
+    test_type = Column(String(100))
     score = Column(Float)
-    respuestas_json = Column(Text, nullable=True)
+    respuestas_json = Column(Text, nullable=True)   # ✅ clave final
     observaciones = Column(Text)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", back_populates="evaluations")
