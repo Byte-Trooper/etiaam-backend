@@ -12,31 +12,32 @@ router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
 # 🧩 Crear o registrar una evaluación
 @router.post("/")
+# 🧩 Crear o registrar una evaluación
+@router.post("/")
 def create_evaluation(
     payload: dict,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """
-    Registra una nueva evaluación.
-    Ahora incluye almacenamiento del campo `respuestas_json` (lista de respuestas por pregunta).
-    """
     try:
         user_id = payload.get("user_id")
         test_type = payload.get("test_type")
         score = payload.get("score")
-        respuestas_json = payload.get("respuestas")  # 🆕 CAMBIO: antes 'respuestas_json'
+        respuestas_json = payload.get("respuestas")  # ✅ viene como dict
         observaciones = payload.get("observaciones")
 
         if not user_id or not test_type:
             raise HTTPException(status_code=400, detail="Faltan campos requeridos")
 
+        # 🧠 Asegurar que se guarde siempre como JSON serializado
+        respuestas_serializadas = json.dumps(respuestas_json or {"preguntas": []})
+
         evaluacion = Evaluation(
             user_id=user_id,
-            evaluador_id=current_user.get("id"),  # Si es paciente, es el mismo id
+            evaluador_id=current_user.get("id"),
             test_type=test_type,
             score=score,
-            respuestas_json=json.dumps(respuestas_json or {"preguntas": []}),  # 🆕 Guarda el JSON
+            respuestas_json=respuestas_serializadas,
             observaciones=observaciones,
             fecha_aplicacion=datetime.utcnow()
         )
@@ -45,15 +46,12 @@ def create_evaluation(
         db.commit()
         db.refresh(evaluacion)
 
-        return {
-            "status": "ok",
-            "evaluation_id": evaluacion.id,
-            "message": "Evaluación registrada correctamente"
-        }
+        return {"status": "ok", "evaluation_id": evaluacion.id}
 
     except Exception as e:
         print("❌ Error en create_evaluation:", e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 # 🧩 Obtener todas las evaluaciones de un paciente
