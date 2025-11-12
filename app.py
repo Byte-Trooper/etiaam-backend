@@ -7,7 +7,7 @@ from models import User, Consent, ensure_evaluation_columns
 from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
 from routes_profile import router as profile_router
-from routes_evaluations import router as evaluations_router
+from routes_evaluations_new import router as evaluations_router
 
 # 🔹 Crear tablas y asegurar esquema actualizado
 Base.metadata.create_all(bind=engine)
@@ -101,16 +101,4 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
         full_name=user.full_name,
         email=user.email
     )
-# ============================================================
-# 🔍 Diagnóstico temporal de rutas registradas
-# ============================================================
-from fastapi.routing import APIRoute
-
-@app.on_event("startup")
-async def list_routes_on_startup():
-    print("\n🚀 === LISTADO DE ENDPOINTS CARGADOS ===")
-    for route in app.routes:
-        if isinstance(route, APIRoute):
-            print(f"➡️  {route.name}: {route.path}")
-    print("=========================================\n")
 
