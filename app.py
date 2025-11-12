@@ -1,31 +1,38 @@
+# app.py
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from db import Base, engine, SessionLocal, get_db
-from models import User, Consent
+from db import Base, engine, get_db
+from models import User, Consent, ensure_evaluation_columns
 from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
 from routes_profile import router as profile_router
 from routes_evaluations import router as evaluations_router
 
+# 🔹 Crear tablas y asegurar esquema actualizado
 Base.metadata.create_all(bind=engine)
+ensure_evaluation_columns(engine)
 
 app = FastAPI(title="ETIAAM API", version="1.0.0")
 
-# CORS abierto para desarrollo
+# 🔹 CORS abierto para desarrollo
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True, 
-    allow_methods=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# 🔹 Rutas
 app.include_router(profile_router)
-app.include_router(evaluations_router) 
+app.include_router(evaluations_router)
+
 
 @app.get("/health")
-def health(): return {"ok": True}
+def health():
+    return {"ok": True}
+
 
 @app.get("/consent/latest")
 def latest_consent():
@@ -39,6 +46,7 @@ def latest_consent():
         "Al aceptar, confirmas que leíste y autorizas el tratamiento."
     )
     return {"version": "v1.0", "text": text}
+
 
 @app.post("/register", response_model=TokenOut)
 def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
@@ -75,6 +83,7 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
         email=user.email
     )
 
+
 @app.post("/login", response_model=TokenOut)
 def login(payload: LoginIn, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
@@ -87,4 +96,3 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
         full_name=user.full_name,
         email=user.email
     )
-

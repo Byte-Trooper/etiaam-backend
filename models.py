@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, inspect
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db import Base
@@ -60,7 +60,6 @@ class Profile(Base):
     nss = Column(String(50))                  # Pacientes
     alergias = Column(Text)                   # Pacientes
 
-    # 🔹 Relación inversa
     user = relationship("User", back_populates="profile")
 
 
@@ -75,9 +74,21 @@ class Evaluation(Base):
     evaluador_id = Column(Integer, nullable=True)
     test_type = Column(String(100))
     score = Column(Float)
-    respuestas_json = Column(Text, nullable=True)  # ✅ JSON serializado (texto)
+    respuestas_json = Column(Text, nullable=True)  # ✅ JSON serializado (TEXT para MySQL)
     observaciones = Column(Text)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
-    # 🔹 Relación inversa hacia User
     user = relationship("User", back_populates="evaluations")
+
+
+# ================================================================
+# 🧩 Validación automática del esquema en ejecución
+# ================================================================
+def ensure_evaluation_columns(engine):
+    inspector = inspect(engine)
+    columns = [col["name"] for col in inspector.get_columns("evaluations")]
+    if "respuestas_json" not in columns:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE evaluations ADD COLUMN respuestas_json TEXT NULL;"))
+            conn.commit()

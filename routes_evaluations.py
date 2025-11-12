@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db import get_db
-from models import User, Evaluation
+from models import Evaluation
 from auth import get_current_user
 from datetime import datetime
 from typing import Optional
@@ -24,12 +24,12 @@ def create_evaluation(
         test_type = payload.get("test_type")
         score = payload.get("score")
         observaciones = payload.get("observaciones")
-        respuestas = payload.get("respuestas")  # dict {"preguntas": [...]}
+        respuestas = payload.get("respuestas")
 
         if not user_id or not test_type:
             raise HTTPException(status_code=400, detail="Faltan campos requeridos")
 
-        # ✅ Serializa correctamente las respuestas para MySQL
+        # ✅ Serializar correctamente el campo JSON
         if respuestas:
             try:
                 respuestas_serializadas = json.dumps(respuestas, ensure_ascii=False)
@@ -38,12 +38,21 @@ def create_evaluation(
         else:
             respuestas_serializadas = json.dumps({"preguntas": []})
 
+        # 🔍 Debug de inserción
+        print("💾 A GUARDAR EN BD:", {
+            "user_id": user_id,
+            "test_type": test_type,
+            "score": score,
+            "respuestas_json": respuestas_serializadas,
+            "observaciones": observaciones
+        })
+
         evaluacion = Evaluation(
             user_id=user_id,
             evaluador_id=current_user.get("id"),
             test_type=test_type,
             score=score,
-            respuestas_json=respuestas_serializadas,  # ✅ aquí se guarda bien
+            respuestas_json=respuestas_serializadas,
             observaciones=observaciones,
             fecha_aplicacion=datetime.utcnow()
         )
@@ -68,9 +77,6 @@ def create_evaluation(
 # ============================================================
 @router.get("/{user_id}")
 def get_evaluations(user_id: int, db: Session = Depends(get_db)):
-    """
-    Devuelve todas las evaluaciones del paciente, incluyendo las respuestas JSON.
-    """
     evaluaciones = (
         db.query(Evaluation)
         .filter(Evaluation.user_id == user_id)
@@ -100,10 +106,6 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
 # ============================================================
 @router.get("/compare/{user_id}")
 def compare_evaluations(user_id: int, db: Session = Depends(get_db)):
-    """
-    Devuelve la última evaluación del paciente y del profesional,
-    incluyendo las respuestas individuales y la diferencia.
-    """
     paciente_eval = (
         db.query(Evaluation)
         .filter(Evaluation.user_id == user_id, Evaluation.evaluador_id == None)
