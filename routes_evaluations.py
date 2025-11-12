@@ -88,6 +88,10 @@ def create_evaluation(
 # ============================================================
 @router.get("/{user_id}")
 def get_evaluations(user_id: int, db: Session = Depends(get_db)):
+    """
+    Devuelve todas las evaluaciones del paciente, incluyendo las respuestas.
+    Soporta tanto respuestas_json (string) como respuestas parseadas.
+    """
     evaluaciones = (
         db.query(Evaluation)
         .filter(Evaluation.user_id == user_id)
@@ -98,19 +102,35 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
     if not evaluaciones:
         raise HTTPException(status_code=404, detail="No se encontraron evaluaciones")
 
-    return [
-        {
-            "id": e.id,
-            "test_type": e.test_type,
-            "score": e.score,
-            "evaluador_id": e.evaluador_id,
-            "fecha_aplicacion": e.fecha_aplicacion,
-            "observaciones": e.observaciones,
-            "respuestas": json.loads(e.respuestas_json) if e.respuestas_json else None,
-            "respuestas_json": e.respuestas_json
-        }
-        for e in evaluaciones
-    ]
+    resultados = []
+    for e in evaluaciones:
+        try:
+            # 🔹 Intentar decodificar respuestas_json si existe
+            respuestas_parseadas = None
+            if e.respuestas_json:
+                try:
+                    respuestas_parseadas = json.loads(e.respuestas_json)
+                except Exception:
+                    respuestas_parseadas = {"error": "No se pudo decodificar el JSON"}
+
+            resultados.append({
+                "id": e.id,
+                "user_id": e.user_id,
+                "test_type": e.test_type,
+                "score": e.score,
+                "fecha_aplicacion": e.fecha_aplicacion,
+                "observaciones": e.observaciones,
+                "evaluador_id": e.evaluador_id,
+                # 🔹 Devuelve tanto la versión cruda como la decodificada
+                "respuestas_json": e.respuestas_json,
+                "respuestas": respuestas_parseadas
+            })
+        except Exception as err:
+            print(f"❌ Error al procesar evaluación {e.id}: {err}")
+
+    print(f"📤 Enviando {len(resultados)} evaluaciones para user_id={user_id}")
+    return resultados
+
 
 
 # ============================================================
