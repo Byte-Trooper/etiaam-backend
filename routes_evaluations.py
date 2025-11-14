@@ -10,53 +10,49 @@ import json
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
 @router.post("")
-def create_evaluation(
-    payload: dict,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Crear una evaluación de automanejo.
-    El frontend envía:
-    {
-      "user_id": 31,
-      "evaluador_id": 15,
-      "test_type": "automanejo_prof",
-      "score": 5.75,
-      "respuestas_json": {"preguntas": [...]},
-      "observaciones": ""
+def create_evaluation(payload: dict, db: Session = Depends(get_db)):
+
+    # Validar campos necesarios
+    if "user_id" not in payload or "test_type" not in payload:
+        raise HTTPException(status_code=400, detail="Faltan campos obligatorios")
+
+    new_eval = Evaluation(
+        user_id = payload.get("user_id"),
+        evaluador_id = payload.get("evaluador_id"),  # 👈 AHORA SÍ SE GUARDA
+        test_type = payload.get("test_type"),
+        score = payload.get("score"),
+        observaciones = payload.get("observaciones", ""),
+
+        # 👇 Guardar JSON real de las preguntas
+        respuestas_json = json.dumps(payload.get("respuestas_json")),
+
+        # 👇 Guardar fecha actual UTC
+        fecha_aplicacion = datetime.utcnow()
+    )
+
+    db.add(new_eval)
+    db.commit()
+    db.refresh(new_eval)
+
+    # Preparar respuesta estándar
+    parsed = None
+    if new_eval.respuestas_json:
+        try:
+            parsed = json.loads(new_eval.respuestas_json)
+        except:
+            parsed = None
+
+    return {
+        "id": new_eval.id,
+        "user_id": new_eval.user_id,
+        "evaluador_id": new_eval.evaluador_id,
+        "test_type": new_eval.test_type,
+        "score": new_eval.score,
+        "observaciones": new_eval.observaciones,
+        "fecha_aplicacion": new_eval.fecha_aplicacion.isoformat(),
+        "respuestas": parsed,
     }
-    """
 
-    required = ["user_id", "test_type", "score", "respuestas_json"]
-    for field in required:
-        if field not in payload:
-            raise HTTPException(400, f"Falta el campo obligatorio: {field}")
-
-    try:
-        new_eval = Evaluation(
-            user_id=payload["user_id"],
-            evaluador_id=payload.get("evaluador_id"),
-            test_type=payload["test_type"],
-            score=payload["score"],
-            respuestas_json=json.dumps(payload["respuestas_json"]),
-            observaciones=payload.get("observaciones", ""),
-            fecha_aplicacion=datetime.utcnow()
-        )
-
-        db.add(new_eval)
-        db.commit()
-        db.refresh(new_eval)
-
-        return {
-            "status": "success",
-            "id": new_eval.id,
-            "message": "Evaluación guardada correctamente"
-        }
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(500, f"Error al guardar la evaluación: {str(e)}")
 
 
 @router.get("/{user_id}")
