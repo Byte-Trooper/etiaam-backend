@@ -9,7 +9,7 @@ import json
 
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
-@router.post("/")
+@router.post("")
 def create_evaluation(
     payload: dict,
     db: Session = Depends(get_db),
