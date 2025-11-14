@@ -9,6 +9,56 @@ import json
 
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
+@router.post("/")
+def create_evaluation(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Crear una evaluación de automanejo.
+    El frontend envía:
+    {
+      "user_id": 31,
+      "evaluador_id": 15,
+      "test_type": "automanejo_prof",
+      "score": 5.75,
+      "respuestas_json": {"preguntas": [...]},
+      "observaciones": ""
+    }
+    """
+
+    required = ["user_id", "test_type", "score", "respuestas_json"]
+    for field in required:
+        if field not in payload:
+            raise HTTPException(400, f"Falta el campo obligatorio: {field}")
+
+    try:
+        new_eval = Evaluation(
+            user_id=payload["user_id"],
+            evaluador_id=payload.get("evaluador_id"),
+            test_type=payload["test_type"],
+            score=payload["score"],
+            respuestas_json=json.dumps(payload["respuestas_json"]),
+            observaciones=payload.get("observaciones", ""),
+            fecha_aplicacion=datetime.utcnow()
+        )
+
+        db.add(new_eval)
+        db.commit()
+        db.refresh(new_eval)
+
+        return {
+            "status": "success",
+            "id": new_eval.id,
+            "message": "Evaluación guardada correctamente"
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Error al guardar la evaluación: {str(e)}")
+
+
 @router.get("/{user_id}")
 def get_evaluations(user_id: int, db: Session = Depends(get_db)):
     evaluations = (
