@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, inspect
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, inspect, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db import Base
