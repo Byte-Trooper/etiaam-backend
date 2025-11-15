@@ -88,3 +88,18 @@ def ensure_evaluation_columns(engine):
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE evaluations ADD COLUMN respuestas_json TEXT NULL;"))
             conn.commit()
+
+class CompetenciasProfesionales(Base):
+    __tablename__ = "competencias_profesionales"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    respuestas = Column(JSON)
+    f1_promedio = Column(Float)
+    f2_promedio = Column(Float)
+    f3_promedio = Column(Float)
+    f4_promedio = Column(Float)
+    puntaje_total = Column(Float)
+    fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User")

@@ -127,3 +127,23 @@ def compare_last_evaluations(user_id: int, db: Session = Depends(get_db)):
         "paciente": _to_dict(paciente),
         "profesional": _to_dict(profesional)
     }
+
+@router.post("/competencias", response_model=CompetenciasOut)
+def guardar_competencias(data: CompetenciasIn, 
+                         db: Session = Depends(get_db),
+                         current_user: dict = Depends(get_current_user)):
+
+    registro = CompetenciasProfesionales(
+        user_id=data.user_id,
+        respuestas=data.respuestas,
+        f1_promedio=data.f1_promedio,
+        f2_promedio=data.f2_promedio,
+        f3_promedio=data.f3_promedio,
+        f4_promedio=data.f4_promedio,
+        puntaje_total=data.puntaje_total
+    )
+
+    db.add(registro)
+    db.commit()
+    db.refresh(registro)
+    return registro
