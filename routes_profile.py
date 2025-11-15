@@ -1,7 +1,6 @@
 # routes_profile.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime
 from db import get_db
 from models import User, Profile
 from schemas import ProfileIn, ProfileOut
@@ -10,7 +9,7 @@ from auth import get_current_user
 router = APIRouter(prefix="/api", tags=["Perfil"])
 
 # ================================================================
-# 🧩 PERFIL — crear o actualizar
+# PERFIL — crear o actualizar (Paciente o Profesional)
 # ================================================================
 @router.post("/profile", response_model=ProfileOut)
 def create_or_update_profile(
@@ -19,16 +18,23 @@ def create_or_update_profile(
     current_user: dict = Depends(get_current_user)
 ):
     user_id = current_user["id"]
+
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(404, "Usuario no encontrado")
+        raise HTTPException(404, detail="Usuario no encontrado")
 
+    # Buscar si ya tiene perfil
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
 
     if not profile:
-        profile = Profile(user_id=user_id, **payload.dict(exclude_unset=True))
+        # Crear nuevo perfil
+        profile = Profile(
+            user_id=user_id,
+            **payload.dict(exclude_unset=True)
+        )
         db.add(profile)
     else:
+        # Actualizar perfil existente
         for key, value in payload.dict(exclude_unset=True).items():
             setattr(profile, key, value)
 
@@ -37,17 +43,17 @@ def create_or_update_profile(
     return profile
 
 # ================================================================
-# 🧩 Obtener perfil por ID
+# Obtener perfil por el ID del usuario
 # ================================================================
 @router.get("/profile/{user_id}", response_model=ProfileOut)
 def get_profile(user_id: int, db: Session = Depends(get_db)):
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
     if not profile:
-        raise HTTPException(404, "Perfil no encontrado")
+        raise HTTPException(404, detail="Perfil no encontrado")
     return profile
 
 # ================================================================
-# 🧩 Perfil del usuario autenticado
+# PERFIL DEL USUARIO AUTENTICADO
 # ================================================================
 @router.get("/me")
 def get_my_profile(
@@ -69,10 +75,13 @@ def get_my_profile(
     }
 
 # ================================================================
-# 🧩 Lista de pacientes
+# LISTA DE PACIENTES (solo profesionales)
 # ================================================================
 @router.get("/pacientes")
-def listar_pacientes(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+def listar_pacientes(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     if current_user.get("user_type") != "profesional":
         raise HTTPException(403, "Acceso restringido a profesionales")
 

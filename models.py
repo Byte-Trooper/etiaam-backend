@@ -5,7 +5,7 @@ from datetime import datetime
 from db import Base
 
 # ================================================================
-# 🧩 USUARIOS
+# USUARIOS
 # ================================================================
 class User(Base):
     __tablename__ = "users"
@@ -17,13 +17,12 @@ class User(Base):
     user_type = Column(String(50))  # 'paciente' | 'profesional'
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # 🔹 Relaciones
+    # Relaciones
     profile = relationship("Profile", back_populates="user", uselist=False)
     evaluations = relationship("Evaluation", back_populates="user")
 
-
 # ================================================================
-# 🧩 CONSENTIMIENTOS
+# CONSENTIMIENTOS
 # ================================================================
 class Consent(Base):
     __tablename__ = "consents"
@@ -36,9 +35,8 @@ class Consent(Base):
     user_agent = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-
 # ================================================================
-# 🧩 PERFILES (unificada para paciente y profesional)
+# PERFILES (unificada para paciente y profesional)
 # ================================================================
 class Profile(Base):
     __tablename__ = "profiles"
@@ -53,18 +51,17 @@ class Profile(Base):
     genero = Column(String(20))
     telefono = Column(String(20))
     direccion = Column(String(255))
-
     # Campos adicionales (según tipo de usuario)
-    especialidad = Column(String(100))        # Profesionales
+    especialidad = Column(String(100))                      # Profesionales
+    cedula_profesional = Column(String(50), nullable=True)  # Profesionales
+    unidad_medica = Column(String(150), nullable=True)      # Profesionales
     fecha_nacimiento = Column(String(50))     # Pacientes
     nss = Column(String(50))                  # Pacientes
-    alergias = Column(Text)                   # Pacientes
 
     user = relationship("User", back_populates="profile")
 
-
 # ================================================================
-# 🧩 EVALUACIONES
+# EVALUACIONES
 # ================================================================
 class Evaluation(Base):
     __tablename__ = "evaluations"
@@ -74,15 +71,14 @@ class Evaluation(Base):
     evaluador_id = Column(Integer, nullable=True)
     test_type = Column(String(100))
     score = Column(Float)
-    respuestas_json = Column(Text, nullable=True)  # ✅ JSON serializado (TEXT para MySQL)
+    respuestas_json = Column(Text, nullable=True)  #JSON serializado (TEXT para MySQL)
     observaciones = Column(Text)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="evaluations")
 
-
 # ================================================================
-# 🧩 Validación automática del esquema en ejecución
+# Validación automática del esquema en ejecución
 # ================================================================
 def ensure_evaluation_columns(engine):
     inspector = inspect(engine)

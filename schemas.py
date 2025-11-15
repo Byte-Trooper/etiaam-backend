@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 
 # ================================================================
-# 🧩 AUTH (Login / Registro / Token)
+# AUTH (Login / Registro / Token)
 # ================================================================
 class RegisterIn(BaseModel):
     email: EmailStr
@@ -13,11 +13,9 @@ class RegisterIn(BaseModel):
     consent_text: str
     consent_version: str
 
-
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
-
 
 class TokenOut(BaseModel):
     access_token: str
@@ -25,9 +23,8 @@ class TokenOut(BaseModel):
     full_name: str
     email: str
 
-
 # ================================================================
-# 🧩 PERFIL (unificado)
+# PERFIL (unificado)
 # ================================================================
 class ProfileIn(BaseModel):
     nombre: Optional[str] = None
@@ -40,7 +37,8 @@ class ProfileIn(BaseModel):
     fecha_nacimiento: Optional[str] = None
     nss: Optional[str] = None
     alergias: Optional[str] = None
-
+    cedula_profesional: Optional[str] = None
+    unidad_medica: Optional[str] = None
 
 class ProfileOut(ProfileIn):
     id: int
@@ -49,9 +47,8 @@ class ProfileOut(ProfileIn):
     class Config:
         from_attributes = True
 
-
 # ================================================================
-# 🧩 EVALUACIONES
+# EVALUACIONES
 # ================================================================
 class EvaluationIn(BaseModel):
     user_id: Optional[int] = None 
@@ -59,7 +56,6 @@ class EvaluationIn(BaseModel):
     score: float
     respuestas: Optional[dict] = None 
     observaciones: Optional[str] = None
-
 
 class EvaluationOut(EvaluationIn):
     id: int
@@ -69,7 +65,6 @@ class EvaluationOut(EvaluationIn):
 
     class Config:
         from_attributes = True
-
 
 class UserOut(BaseModel):
     id: int
