@@ -183,14 +183,16 @@ def ultimo_automanejo_paciente(user_id: int, db: Session = Depends(get_db)):
     if not eval:
         return {"ultimo": None}
 
-    try:
-        respuestas = json.loads(eval.respuestas_json) if eval.respuestas_json else None
-    except:
-        respuestas = None
+    parsed = None
+    if eval.respuestas_json:
+        try:
+            parsed = json.loads(eval.respuestas_json)
+        except:
+            parsed = None
 
     return {
-        "id": eval.id,
+        "ultimo": True,
         "score": eval.score,
         "fecha": eval.fecha_aplicacion.isoformat(),
-        "respuestas": respuestas
+        "respuestas": parsed
     }
