@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from db import Base, engine, get_db
-from models import User, Consent, ensure_evaluation_columns
+from models import User, Consent
 from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
 from routes_profile import router as profile_router
@@ -11,7 +11,6 @@ from routes_evaluations import router as evaluations_router
 
 # 🔹 Crear tablas y asegurar esquema actualizado
 Base.metadata.create_all(bind=engine)
-ensure_evaluation_columns(engine)
 
 app = FastAPI(title="ETIAAM API", version="1.0.0")
 
