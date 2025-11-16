@@ -197,7 +197,7 @@ def ultimo_automanejo_paciente(user_id: int, db: Session = Depends(get_db)):
         "respuestas": parsed
     }
 
-@router.get("/pacientes/detalle/{user_id}")
+@router.get("/pacientes/info/{user_id}")
 def obtener_detalle_paciente(user_id: int, db: Session = Depends(get_db)):
     from models import User, Profile
 
