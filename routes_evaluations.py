@@ -136,23 +136,34 @@ def compare_last_evaluations(user_id: int, db: Session = Depends(get_db)):
 # ============================================================
 @router.post("/competencias", response_model=CompetenciasOut)
 def guardar_competencias(
-    data: CompetenciasIn,
+    data: CompetenciasIn, 
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    import json
 
     registro = CompetenciasProfesionales(
         user_id=data.user_id,
-        respuestas=data.respuestas,
+        respuestas=json.dumps(data.respuestas),  # 👈 convertir dict → string JSON
         f1_promedio=data.f1_promedio,
         f2_promedio=data.f2_promedio,
         f3_promedio=data.f3_promedio,
         f4_promedio=data.f4_promedio,
-        puntaje_total=data.puntaje_total,
-        fecha_aplicacion=datetime.utcnow()
+        puntaje_total=data.puntaje_total
     )
 
     db.add(registro)
     db.commit()
     db.refresh(registro)
-    return registro
+
+    # 👇 convertir string → dict para respuesta JSON válida
+    return CompetenciasOut(
+        id=registro.id,
+        user_id=registro.user_id,
+        respuestas=json.loads(registro.respuestas),
+        f1_promedio=registro.f1_promedio,
+        f2_promedio=registro.f2_promedio,
+        f3_promedio=registro.f3_promedio,
+        f4_promedio=registro.f4_promedio,
+        puntaje_total=registro.puntaje_total
+    )
