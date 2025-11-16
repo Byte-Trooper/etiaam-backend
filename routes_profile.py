@@ -133,9 +133,9 @@ def listar_pacientes_detalle(current_user: dict = Depends(get_current_user),
 def obtener_info_paciente(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user)
 ):
-    # Validar que el usuario sea profesional
+    # Solo profesionales pueden acceder
     if current_user["user_type"] != "profesional":
         raise HTTPException(403, "Acceso restringido")
 
@@ -148,15 +148,19 @@ def obtener_info_paciente(
     if not user:
         raise HTTPException(404, "Paciente no encontrado")
 
-    # Buscar perfil asociado
+    # Perfil asociado
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
     if not profile:
         raise HTTPException(404, "Perfil no encontrado")
 
-    # Respuesta unificada
+    # Construir nombre completo
+    full_name = f"{profile.nombre or ''} {profile.apellido or ''}".strip()
+
     return {
         "id": user.id,
-        "full_name": user.full_name,
+        "full_name": full_name,
+        "nombre": profile.nombre,
+        "apellido": profile.apellido,
         "genero": profile.genero,
         "edad": profile.edad,
         "telefono": profile.telefono,
@@ -165,4 +169,5 @@ def obtener_info_paciente(
         "fecha_nacimiento": profile.fecha_nacimiento,
         "nss": profile.nss,
     }
+
 

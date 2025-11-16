@@ -196,29 +196,3 @@ def ultimo_automanejo_paciente(user_id: int, db: Session = Depends(get_db)):
         "fecha": eval.fecha_aplicacion.isoformat(),
         "respuestas": parsed
     }
-
-@router.get("/pacientes/info/{user_id}")
-def obtener_detalle_paciente(user_id: int, db: Session = Depends(get_db)):
-    from models import User, Profile
-
-    user = db.query(User).filter(User.id == user_id, User.user_type == "paciente").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Paciente no encontrado")
-
-    profile = db.query(Profile).filter(Profile.user_id == user_id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="Perfil no encontrado")
-
-    return {
-        "id": user.id,
-        "full_name": user.full_name,
-        "nombre": profile.nombre,
-        "apellido": profile.apellido,
-        "edad": profile.edad,
-        "genero": profile.genero,
-        "telefono": profile.telefono,
-        "direccion": profile.direccion,
-        "unidad_medica": profile.unidad_medica,
-        "fecha_nacimiento": profile.fecha_nacimiento,
-        "nss": profile.nss
-    }
