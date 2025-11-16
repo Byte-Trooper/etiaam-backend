@@ -2,31 +2,36 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db import get_db
-from models import Evaluation
+from models import Evaluation, CompetenciasProfesionales
 from auth import get_current_user
 from datetime import datetime
 import json
 
+# IMPORTS CORRECTOS
+from schemas import (
+    CompetenciasCreate,
+    CompetenciasOut,
+    CompetenciasIn
+)
+
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 
+# ============================================================
+# GUARDAR EVALUACIÓN GENERAL (AUTOMANEJO PACIENTE / PROFESIONAL)
+# ============================================================
 @router.post("")
 def create_evaluation(payload: dict, db: Session = Depends(get_db)):
 
-    # Validar campos necesarios
     if "user_id" not in payload or "test_type" not in payload:
         raise HTTPException(status_code=400, detail="Faltan campos obligatorios")
 
     new_eval = Evaluation(
         user_id = payload.get("user_id"),
-        evaluador_id = payload.get("evaluador_id"),  # 👈 AHORA SÍ SE GUARDA
+        evaluador_id = payload.get("evaluador_id"),
         test_type = payload.get("test_type"),
         score = payload.get("score"),
         observaciones = payload.get("observaciones", ""),
-
-        # 👇 Guardar JSON real de las preguntas
         respuestas_json = json.dumps(payload.get("respuestas_json")),
-
-        # 👇 Guardar fecha actual UTC
         fecha_aplicacion = datetime.utcnow()
     )
 
@@ -34,7 +39,6 @@ def create_evaluation(payload: dict, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_eval)
 
-    # Preparar respuesta estándar
     parsed = None
     if new_eval.respuestas_json:
         try:
@@ -54,7 +58,9 @@ def create_evaluation(payload: dict, db: Session = Depends(get_db)):
     }
 
 
-
+# ============================================================
+# OBTENER HISTORIAL DE EVALUACIONES
+# ============================================================
 @router.get("/{user_id}")
 def get_evaluations(user_id: int, db: Session = Depends(get_db)):
     evaluations = (
@@ -63,14 +69,14 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
         .order_by(Evaluation.fecha_aplicacion.desc())
         .all()
     )
+
     result = []
     for e in evaluations:
-        # Parsear respuestas_json (string) -> dict con 'preguntas'
         parsed = None
         if e.respuestas_json:
             try:
                 parsed = json.loads(e.respuestas_json)
-            except Exception:
+            except:
                 parsed = None
 
         result.append({
@@ -79,30 +85,33 @@ def get_evaluations(user_id: int, db: Session = Depends(get_db)):
             "evaluador_id": e.evaluador_id,
             "test_type": e.test_type,
             "score": e.score,
-            "observaciones": e.observaciones or "",
+            "observaciones": e.observaciones,
             "fecha_aplicacion": e.fecha_aplicacion.isoformat() if e.fecha_aplicacion else None,
-            # clave que tu app ya espera:
-            "respuestas": parsed  # <- importante
+            "respuestas": parsed
         })
     return result
 
 
+# ============================================================
+# COMPARACIÓN PACIENTE vs PROFESIONAL
+# ============================================================
 @router.get("/compare/{user_id}")
 def compare_last_evaluations(user_id: int, db: Session = Depends(get_db)):
-    # última del paciente
+
     paciente = (
         db.query(Evaluation)
         .filter(Evaluation.user_id == user_id, Evaluation.test_type == "automanejo_paciente")
         .order_by(Evaluation.fecha_aplicacion.desc())
         .first()
     )
-    # última del profesional
+
     profesional = (
         db.query(Evaluation)
         .filter(Evaluation.user_id == user_id, Evaluation.test_type == "automanejo_prof")
         .order_by(Evaluation.fecha_aplicacion.desc())
         .first()
     )
+
     def _to_dict(e):
         if not e:
             return None
@@ -110,28 +119,33 @@ def compare_last_evaluations(user_id: int, db: Session = Depends(get_db)):
         if e.respuestas_json:
             try:
                 parsed = json.loads(e.respuestas_json)
-            except Exception:
+            except:
                 parsed = None
         return {
             "id": e.id,
             "user_id": e.user_id,
             "test_type": e.test_type,
             "score": e.score,
-            "observaciones": e.observaciones or "",
-            "fecha": e.fecha_aplicacion.isoformat() if e.fecha_aplicacion else None,
-            # clave que usa tu ComparacionAutomanejoScreen:
+            "observaciones": e.observaciones,
+            "fecha": e.fecha_aplicacion.isoformat(),
             "respuestas": parsed
         }
 
     return {
         "paciente": _to_dict(paciente),
-        "profesional": _to_dict(profesional)
+        "profesional": _to_dict(profesional),
     }
 
+
+# ============================================================
+# GUARDAR TEST DE COMPETENCIAS
+# ============================================================
 @router.post("/competencias", response_model=CompetenciasOut)
-def guardar_competencias(data: CompetenciasIn, 
-                         db: Session = Depends(get_db),
-                         current_user: dict = Depends(get_current_user)):
+def guardar_competencias(
+    data: CompetenciasIn,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
 
     registro = CompetenciasProfesionales(
         user_id=data.user_id,
@@ -140,7 +154,8 @@ def guardar_competencias(data: CompetenciasIn,
         f2_promedio=data.f2_promedio,
         f3_promedio=data.f3_promedio,
         f4_promedio=data.f4_promedio,
-        puntaje_total=data.puntaje_total
+        puntaje_total=data.puntaje_total,
+        fecha_aplicacion=datetime.utcnow()
     )
 
     db.add(registro)

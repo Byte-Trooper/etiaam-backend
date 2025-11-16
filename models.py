@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, inspect, JSON
+from sqlalchemy import Column, Integer, String, Text, Float, DateTime, ForeignKey, inspect
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db import Base
@@ -14,12 +14,14 @@ class User(Base):
     email = Column(String(120), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(120))
-    user_type = Column(String(50))  # 'paciente' | 'profesional'
+    user_type = Column(String(50))
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relaciones
     profile = relationship("Profile", back_populates="user", uselist=False)
     evaluations = relationship("Evaluation", back_populates="user")
+    competencias = relationship("CompetenciasProfesionales", back_populates="user")
+
 
 # ================================================================
 # CONSENTIMIENTOS
@@ -35,8 +37,9 @@ class Consent(Base):
     user_agent = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+
 # ================================================================
-# PERFILES (unificada para paciente y profesional)
+# PERFILES (Pacientes y profesionales)
 # ================================================================
 class Profile(Base):
     __tablename__ = "profiles"
@@ -44,21 +47,25 @@ class Profile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
 
-    # Campos comunes
-    nombre = Column(String(100))
-    apellido = Column(String(100))
-    edad = Column(Integer)
-    genero = Column(String(20))
-    telefono = Column(String(20))
-    direccion = Column(String(255))
-    # Campos adicionales (según tipo de usuario)
-    especialidad = Column(String(100))                      # Profesionales
-    cedula_profesional = Column(String(50), nullable=True)  # Profesionales
-    unidad_medica = Column(String(150), nullable=True)      # Profesionales
-    fecha_nacimiento = Column(String(50))     # Pacientes
-    nss = Column(String(50))                  # Pacientes
+    # Comunes
+    nombre = Column(String(100), nullable=True)
+    apellido = Column(String(100), nullable=True)
+    edad = Column(Integer, nullable=True)
+    genero = Column(String(20), nullable=True)
+    telefono = Column(String(20), nullable=True)
+    direccion = Column(String(255), nullable=True)
+
+    # Profesionales
+    especialidad = Column(String(100), nullable=True)
+    cedula_profesional = Column(String(50), nullable=True)
+    unidad_medica = Column(String(150), nullable=True)
+
+    # Pacientes
+    fecha_nacimiento = Column(String(50), nullable=True)
+    nss = Column(String(50), nullable=True)
 
     user = relationship("User", back_populates="profile")
+
 
 # ================================================================
 # EVALUACIONES
@@ -71,35 +78,31 @@ class Evaluation(Base):
     evaluador_id = Column(Integer, nullable=True)
     test_type = Column(String(100))
     score = Column(Float)
-    respuestas_json = Column(Text, nullable=True)  #JSON serializado (TEXT para MySQL)
-    observaciones = Column(Text)
+    respuestas_json = Column(Text, nullable=True)
+    observaciones = Column(Text, nullable=True)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="evaluations")
 
-# ================================================================
-# Validación automática del esquema en ejecución
-# ================================================================
-def ensure_evaluation_columns(engine):
-    inspector = inspect(engine)
-    columns = [col["name"] for col in inspector.get_columns("evaluations")]
-    if "respuestas_json" not in columns:
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE evaluations ADD COLUMN respuestas_json TEXT NULL;"))
-            conn.commit()
 
+# ================================================================
+# COMPETENCIAS PROFESIONALES
+# ================================================================
 class CompetenciasProfesionales(Base):
     __tablename__ = "competencias_profesionales"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    respuestas = Column(JSON)
+
+    # JSON serializado
+    respuestas = Column(Text)   # <--- Compatibilidad universal
+
     f1_promedio = Column(Float)
     f2_promedio = Column(Float)
     f3_promedio = Column(Float)
     f4_promedio = Column(Float)
     puntaje_total = Column(Float)
+
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User")
+    user = relationship("User", back_populates="competencias")

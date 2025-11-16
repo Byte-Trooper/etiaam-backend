@@ -1,6 +1,6 @@
 # schemas.py
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, Dict, Any
 
 # ================================================================
 # AUTH (Login / Registro / Token)
@@ -22,6 +22,7 @@ class TokenOut(BaseModel):
     user_type: str
     full_name: str
     email: str
+
 
 # ================================================================
 # PERFIL (unificado)
@@ -47,24 +48,26 @@ class ProfileOut(ProfileIn):
     class Config:
         from_attributes = True
 
+
 # ================================================================
-# EVALUACIONES
+# EVALUACIONES (Automanejo Paciente / Profesional)
 # ================================================================
 class EvaluationIn(BaseModel):
-    user_id: Optional[int] = None 
+    user_id: Optional[int] = None
     test_type: str
     score: float
-    respuestas: Optional[dict] = None 
+    respuestas: Optional[dict] = None
     observaciones: Optional[str] = None
 
 class EvaluationOut(EvaluationIn):
     id: int
     user_id: int
     fecha_aplicacion: str
-    respuestas: Optional[dict] = None 
+    respuestas: Optional[dict]
 
     class Config:
         from_attributes = True
+
 
 class UserOut(BaseModel):
     id: int
@@ -74,3 +77,31 @@ class UserOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ================================================================
+# TEST DE COMPETENCIAS PROFESIONALES
+# ================================================================
+class CompetenciasIn(BaseModel):
+    user_id: int
+    respuestas: Dict[str, Any]      # JSON de respuestas completas
+    f1_promedio: float
+    f2_promedio: float
+    f3_promedio: float
+    f4_promedio: float
+    puntaje_total: float            # promedio total
+
+
+class CompetenciasOut(BaseModel):
+    id: int
+    user_id: int
+    respuestas: Dict[str, Any]
+    f1_promedio: float
+    f2_promedio: float
+    f3_promedio: float
+    f4_promedio: float
+    puntaje_total: float
+    fecha_aplicacion: Optional[str] = None
+
+    class Config:
+        orm_mode = True
