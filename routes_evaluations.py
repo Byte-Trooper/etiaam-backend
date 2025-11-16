@@ -168,3 +168,29 @@ def guardar_competencias(
         puntaje_total=registro.puntaje_total,
         fecha_aplicacion=registro.fecha_aplicacion.isoformat() if registro.fecha_aplicacion else None
 )
+
+@router.get("/paciente/ultimo/{user_id}")
+def ultimo_automanejo_paciente(user_id: int, db: Session = Depends(get_db)):
+
+    eval = (
+        db.query(Evaluation)
+        .filter(Evaluation.user_id == user_id,
+                Evaluation.test_type == "automanejo_paciente")
+        .order_by(Evaluation.fecha_aplicacion.desc())
+        .first()
+    )
+
+    if not eval:
+        return {"ultimo": None}
+
+    try:
+        respuestas = json.loads(eval.respuestas_json) if eval.respuestas_json else None
+    except:
+        respuestas = None
+
+    return {
+        "id": eval.id,
+        "score": eval.score,
+        "fecha": eval.fecha_aplicacion.isoformat(),
+        "respuestas": respuestas
+    }
