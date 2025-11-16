@@ -101,7 +101,7 @@ class CompetenciasOut(BaseModel):
     f3_promedio: float
     f4_promedio: float
     puntaje_total: float
-    fecha_aplicacion: str
+    fecha_aplicacion: Optional[str] = None  
 
     class Config:
         from_attributes = True

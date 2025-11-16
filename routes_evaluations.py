@@ -165,5 +165,6 @@ def guardar_competencias(
         f2_promedio=registro.f2_promedio,
         f3_promedio=registro.f3_promedio,
         f4_promedio=registro.f4_promedio,
-        puntaje_total=registro.puntaje_total
-    )
+        puntaje_total=registro.puntaje_total,
+        fecha_aplicacion=registro.fecha_aplicacion.isoformat() if registro.fecha_aplicacion else None
+)
