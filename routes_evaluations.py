@@ -6,13 +6,7 @@ from models import Evaluation, CompetenciasProfesionales
 from auth import get_current_user
 from datetime import datetime
 import json
-
-# IMPORTS CORRECTOS
-from schemas import (
-    CompetenciasCreate,
-    CompetenciasOut,
-    CompetenciasIn
-)
+from schemas import CompetenciasIn, CompetenciasOut
 
 router = APIRouter(prefix="/api/evaluations", tags=["Evaluaciones"])
 

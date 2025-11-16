@@ -79,17 +79,17 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
-# ================================================================
-# TEST DE COMPETENCIAS PROFESIONALES
-# ================================================================
+# =============================================================
+#     SCHEMA PARA TEST DE COMPETENCIAS PROFESIONALES
+# =============================================================
 class CompetenciasIn(BaseModel):
     user_id: int
-    respuestas: Dict[str, Any]      # JSON de respuestas completas
+    respuestas: Dict[str, Any]
     f1_promedio: float
     f2_promedio: float
     f3_promedio: float
     f4_promedio: float
-    puntaje_total: float            # promedio total
+    puntaje_total: float
 
 
 class CompetenciasOut(BaseModel):
@@ -101,7 +101,8 @@ class CompetenciasOut(BaseModel):
     f3_promedio: float
     f4_promedio: float
     puntaje_total: float
-    fecha_aplicacion: Optional[str] = None
+    fecha_aplicacion: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+
