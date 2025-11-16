@@ -128,3 +128,41 @@ def listar_pacientes_detalle(current_user: dict = Depends(get_current_user),
         })
 
     return resultado
+
+@router.get("/pacientes/info/{user_id}")
+def obtener_info_paciente(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    # Validar que el usuario sea profesional
+    if current_user["user_type"] != "profesional":
+        raise HTTPException(403, "Acceso restringido")
+
+    # Buscar usuario paciente
+    user = (
+        db.query(User)
+        .filter(User.id == user_id, User.user_type == "paciente")
+        .first()
+    )
+    if not user:
+        raise HTTPException(404, "Paciente no encontrado")
+
+    # Buscar perfil asociado
+    profile = db.query(Profile).filter(Profile.user_id == user_id).first()
+    if not profile:
+        raise HTTPException(404, "Perfil no encontrado")
+
+    # Respuesta unificada
+    return {
+        "id": user.id,
+        "full_name": user.full_name,
+        "genero": profile.genero,
+        "edad": profile.edad,
+        "telefono": profile.telefono,
+        "direccion": profile.direccion,
+        "unidad_medica": profile.unidad_medica,
+        "fecha_nacimiento": profile.fecha_nacimiento,
+        "nss": profile.nss,
+    }
+
