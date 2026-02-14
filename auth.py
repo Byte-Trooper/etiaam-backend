@@ -19,8 +19,7 @@ JWT_ALG = "HS256"
 JWT_EXP_MIN = int(os.getenv("JWT_EXP_MIN", "120"))
 
 def hash_password(p: str) -> str:
-    # puedes limitar por política (p.ej. 8–128 chars), pero Argon2 no requiere 72
-    return pwd_ctx.hash(p)
+    return pwd_ctx.hash(p)    # limite por política (8–128 chars)
 
 def verify_password(p: str, h: str) -> bool:
     return pwd_ctx.verify(p, h)
