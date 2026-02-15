@@ -137,24 +137,13 @@ class ObjetivoPlan(Base):
     __tablename__ = "objetivos_plan"
 
     id = Column(Integer, primary_key=True, index=True)
-
     plan_id = Column(Integer, ForeignKey("plan_trabajo.id"))
 
-    descripcion = Column(Text)
-    actividad = Column(Text)
-    recursos = Column(Text)
-    cronograma = Column(String(100))
-    fecha_seguimiento = Column(String(50))
+    descripcion = Column(String(255))
+    actividad = Column(String(255))
+    recursos = Column(String(255))
+    seguimiento = Column(Text)
 
-    importante = Column(Integer)
-    posible = Column(Integer)
-    claro = Column(Integer)
-    capacidad = Column(Integer)
-    merece = Column(Integer)
-
-    seguimiento = Column(Text, nullable=True)
     cumplimiento = Column(Integer, default=0)
-
-    plan = relationship("PlanTrabajo", back_populates="objetivos")
 
 

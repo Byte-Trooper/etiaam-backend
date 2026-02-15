@@ -115,26 +115,19 @@ class CompetenciasOut(BaseModel):
 class ObjetivoPlanCreate(BaseModel):
     descripcion: str
     actividad: str
-    recursos: str
-    cronograma: str
-    fecha_seguimiento: str
-    importante: int
-    posible: int
-    claro: int
-    capacidad: int
-    merece: int
-    seguimiento: str | None = None
-    cumplimiento: int | None = 0
+    recursos: Optional[str] = None
+    seguimiento: Optional[str] = None
+    cumplimiento: int = 0
 
 
-class PlanTrabajoCreate(BaseModel):
+class PlanTrabajoCreate(BaseModel):     
     paciente_id: int
     profesional_id: int
     objetivo_principal: str
     plan_ejecucion: str
-    recursos_necesarios: str
-    emociones_asociadas: str
-    objetivos: List[ObjetivoPlanCreate]
+    recursos_necesarios: Optional[str] = None
+    emociones_asociadas: Optional[str] = None
+    objetivos: List[ObjetivoCreate]
 
 
 class PlanTrabajoOut(BaseModel):
