@@ -1,6 +1,8 @@
 # schemas.py
 from pydantic import BaseModel, EmailStr
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+
 
 # ================================================================
 # AUTH (Login / Registro / Token)
@@ -106,3 +108,43 @@ class CompetenciasOut(BaseModel):
     class Config:
         from_attributes = True
 
+
+# =============================================================
+#     SCHEMA PARA PLAN DE TRABAJO
+# =============================================================
+class ObjetivoPlanCreate(BaseModel):
+    descripcion: str
+    actividad: str
+    recursos: str
+    cronograma: str
+    fecha_seguimiento: str
+    importante: int
+    posible: int
+    claro: int
+    capacidad: int
+    merece: int
+
+
+class PlanTrabajoCreate(BaseModel):
+    paciente_id: int
+    profesional_id: int
+    objetivo_principal: str
+    plan_ejecucion: str
+    recursos_necesarios: str
+    emociones_asociadas: str
+    objetivos: List[ObjetivoPlanCreate]
+
+
+class PlanTrabajoOut(BaseModel):
+    id: int
+    paciente_id: int
+    profesional_id: int
+    fecha_creacion: datetime
+    objetivo_principal: str
+    plan_ejecucion: str
+    recursos_necesarios: str
+    emociones_asociadas: str
+    estado: str
+
+    class Config:
+        orm_mode = True

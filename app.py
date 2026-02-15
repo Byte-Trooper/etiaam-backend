@@ -9,6 +9,7 @@ from schemas import RegisterIn, LoginIn, TokenOut
 from auth import hash_password, verify_password, create_access_token, sha256_hex
 from routes_profile import router as profile_router
 from routes_evaluations import router as evaluations_router
+from routes_plan_trabajo import router as plan_router
 
 app = FastAPI(title="ETIAAM API", version="1.0.0")
 
@@ -33,6 +34,7 @@ app.add_middleware(
 # Cargar routers
 app.include_router(profile_router)
 app.include_router(evaluations_router)
+app.include_router(plan_router)
 
 print("✅ Routers cargados correctamente: /api/profile y /api/evaluations activos")
 

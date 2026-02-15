@@ -106,3 +106,52 @@ class CompetenciasProfesionales(Base):
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="competencias")
+
+# ================================================================
+# PLAN DE TRABAJO
+# ================================================================
+class PlanTrabajo(Base):
+    __tablename__ = "plan_trabajo"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    paciente_id = Column(Integer, ForeignKey("users.id"))
+    profesional_id = Column(Integer, ForeignKey("users.id"))
+
+    fecha_creacion = Column(DateTime, default=datetime.utcnow)
+
+    objetivo_principal = Column(Text)
+    plan_ejecucion = Column(Text)
+    recursos_necesarios = Column(Text)
+    emociones_asociadas = Column(Text)
+
+    estado = Column(String, default="activo")  # activo / cerrado
+
+    objetivos = relationship("ObjetivoPlan", back_populates="plan", cascade="all, delete")
+
+
+# ================================================================
+# OBJETIVOS DEL PLAN DE TRABAJO
+# ================================================================
+class ObjetivoPlan(Base):
+    __tablename__ = "objetivos_plan"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    plan_id = Column(Integer, ForeignKey("plan_trabajo.id"))
+
+    descripcion = Column(Text)
+    actividad = Column(Text)
+    recursos = Column(Text)
+    cronograma = Column(String)
+    fecha_seguimiento = Column(String)
+
+    importante = Column(Integer)
+    posible = Column(Integer)
+    claro = Column(Integer)
+    capacidad = Column(Integer)
+    merece = Column(Integer)
+
+    plan = relationship("PlanTrabajo", back_populates="objetivos")
+
+
