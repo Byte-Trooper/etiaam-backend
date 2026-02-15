@@ -46,3 +46,54 @@ def crear_plan(data: PlanTrabajoCreate, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Plan creado correctamente"}
+
+
+# ================================================================
+# OBTENER ULTIMO PLAN
+# ================================================================
+@router.get("/ultimo/{paciente_id}")
+def obtener_ultimo_plan(paciente_id: int, db: Session = Depends(get_db)):
+    plan = (
+        db.query(PlanTrabajo)
+        .filter(PlanTrabajo.paciente_id == paciente_id)
+        .order_by(PlanTrabajo.fecha_creacion.desc())
+        .first()
+    )
+
+    if not plan:
+        return {"message": "No hay plan disponible"}
+
+    return plan
+
+
+# ================================================================
+# OBTENER HISTORIAL
+# ================================================================
+@router.get("/historial/{paciente_id}")
+def historial_planes(paciente_id: int, db: Session = Depends(get_db)):
+    planes = (
+        db.query(PlanTrabajo)
+        .filter(PlanTrabajo.paciente_id == paciente_id)
+        .order_by(PlanTrabajo.fecha_creacion.desc())
+        .all()
+    )
+
+    return planes
+
+
+# ================================================================
+# OBTENER OBJETIVOS
+# ================================================================
+@router.get("/{plan_id}")
+def obtener_plan_detalle(plan_id: int, db: Session = Depends(get_db)):
+    plan = (
+        db.query(PlanTrabajo)
+        .filter(PlanTrabajo.id == plan_id)
+        .first()
+    )
+
+    if not plan:
+        return {"message": "Plan no encontrado"}
+
+    return plan
+
