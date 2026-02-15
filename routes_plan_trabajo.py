@@ -108,6 +108,7 @@ def crear_plan(data: PlanTrabajoCreate, db: Session = Depends(get_db)):
 # ================================================================
 @router.get("/ultimo/{paciente_id}")
 def obtener_ultimo_plan(paciente_id: int, db: Session = Depends(get_db)):
+
     plan = (
         db.query(PlanTrabajo)
         .filter(PlanTrabajo.paciente_id == paciente_id)
@@ -118,7 +119,29 @@ def obtener_ultimo_plan(paciente_id: int, db: Session = Depends(get_db)):
     if not plan:
         return {"message": "No hay plan disponible"}
 
-    return plan
+    return {
+        "id": plan.id,
+        "paciente_id": plan.paciente_id,
+        "profesional_id": plan.profesional_id,
+        "fecha_creacion": plan.fecha_creacion,
+        "objetivo_principal": plan.objetivo_principal,
+        "plan_ejecucion": plan.plan_ejecucion,
+        "recursos_necesarios": plan.recursos_necesarios,
+        "emociones_asociadas": plan.emociones_asociadas,
+        "estado": plan.estado,
+        "objetivos": [
+            {
+                "id": obj.id,
+                "descripcion": obj.descripcion,
+                "actividad": obj.actividad,
+                "recursos": obj.recursos,
+                "seguimiento": obj.seguimiento,
+                "cumplimiento": obj.cumplimiento
+            }
+            for obj in plan.objetivos
+        ]
+    }
+
 
 
 # ================================================================
