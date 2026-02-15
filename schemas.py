@@ -127,7 +127,7 @@ class PlanTrabajoCreate(BaseModel):
     plan_ejecucion: str
     recursos_necesarios: Optional[str] = None
     emociones_asociadas: Optional[str] = None
-    objetivos: List[ObjetivoCreate]
+    objetivos: List[ObjetivoPlanCreate]
 
 
 class PlanTrabajoOut(BaseModel):
