@@ -125,7 +125,7 @@ class PlanTrabajo(Base):
     recursos_necesarios = Column(Text)
     emociones_asociadas = Column(Text)
 
-    estado = Column(String, default="activo")  # activo / cerrado
+    estado = Column(String(20), default="activo")  # activo / cerrado
 
     objetivos = relationship("ObjetivoPlan", back_populates="plan", cascade="all, delete")
 
@@ -143,8 +143,8 @@ class ObjetivoPlan(Base):
     descripcion = Column(Text)
     actividad = Column(Text)
     recursos = Column(Text)
-    cronograma = Column(String)
-    fecha_seguimiento = Column(String)
+    cronograma = Column(String(100))
+    fecha_seguimiento = Column(String(50))
 
     importante = Column(Integer)
     posible = Column(Integer)
