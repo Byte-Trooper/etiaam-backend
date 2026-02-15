@@ -48,15 +48,24 @@ def health():
 @app.get("/consent/latest")
 def latest_consent():
     text = (
-        "Autorización informada para el tratamiento de datos de salud (v1.0)\n"
-        "• Finalidad: mejorar la atención y automanejo de ECNT.\n"
-        "• Datos: identificación y registros de salud proporcionados.\n"
-        "• Transferencias: solo equipo autorizado conforme a la ley.\n"
-        "• Seguridad: medidas técnicas/administrativas, acceso restringido.\n"
-        "• Derechos ARCO: acceso, rectificación, cancelación u oposición.\n"
-        "Al aceptar, confirmas que leíste y autorizas el tratamiento."
+       "CONSENTIMIENTO INFORMADO\n"
+        "Título del proyecto: ECOSISTEMA TECNOLÓGICO CON INTELIGENCIA ARTIFICIAL PARA EL AUTOMANEJO (ETIAAM)\n"
+        "\nEstimado(a) Usuario:\n"
+        "Los investigadores de la Facultad de Enfermería Tampico y de la Facultad de Ingeniería de la Universidad Autónoma de Tamaulipas, México, me han informado que están dirigiendo el proyecto de investigación ETIAAM, cuyo objetivo es desarrollar un ecosistema médico-tecnológico integral basado en técnicas de inteligencia artificial y ciencia de datos para el apoyo del automanejo en enfermedades crónicas no transmisibles y la optimización de la atención en salud.\n"
+
+        "\nMi participación consistirá en responder un cuestionario electrónico a través de una aplicación (App) instalada en mi teléfono, mediante la cual podré contestar las preguntas y observar el seguimiento de mi condición crónica. Esta información será compartida con los profesionales de salud responsables de mi atención.\n"
+        "Los datos obtenidos serán utilizados exclusivamente con fines científicos por el equipo de investigación del proyecto, no estarán disponibles para otros propósitos y se conservarán durante la vigencia del proyecto y un año posterior a su terminación. Seré identificado(a) mediante un número y no por mi nombre. Los resultados se publicarán con fines académicos sin revelar mi identidad.\n"
+
+        "\nEsta investigación se considera de riesgo mínimo. \nSi durante el cuestionario alguna pregunta me causa molestia o incomodidad, puedo negarme a responder. \nMi participación es completamente voluntaria y puedo retirarme en cualquier momento sin que esto afecte mi atención médica. \nNo recibiré compensación económica por mi participación.\n"
+
+        "\nContacto:"  
+        "\n• Dra. María Isabel de Córdova — decordova.maria.isabel@gmail.com"
+        "\n• Dr. Pedro Córdoba — pcordoba@docentes.uat.edu.mx"
+        "\nTeléfonos: +51 980973062 / +52 833 1551764\n"
+
+        "\nSi tengo dudas sobre mis derechos como participante en la investigación, puedo contactar al Dr. Carlos Eduardo Pretel Vergel (Centro de Salud donde me atiendo) o al Dr. José Alfredo Álvarez (Jefatura de Enseñanza, Clínica ISSSTE).\n"
     )
-    return {"version": "v1.0", "text": text}
+    return {"version": "v2.0", "text": text}
 
 
 @app.post("/register", response_model=TokenOut)
