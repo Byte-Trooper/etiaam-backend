@@ -97,3 +97,20 @@ def obtener_plan_detalle(plan_id: int, db: Session = Depends(get_db)):
 
     return plan
 
+# ================================================================
+# CERRAR PLAN DE TRABAJO
+# ================================================================
+@router.put("/cerrar/{plan_id}")
+def cerrar_plan(plan_id: int, db: Session = Depends(get_db)):
+
+    plan = db.query(PlanTrabajo).filter(
+        PlanTrabajo.id == plan_id
+    ).first()
+
+    if not plan:
+        return {"message": "Plan no encontrado"}
+
+    plan.estado = "cerrado"
+    db.commit()
+
+    return {"message": "Plan cerrado correctamente"}
