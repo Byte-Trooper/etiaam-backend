@@ -146,4 +146,7 @@ class ObjetivoPlan(Base):
 
     cumplimiento = Column(Integer, default=0)
 
+    # 🔹 ESTA LÍNEA ES LA QUE FALTA
+    plan = relationship("PlanTrabajo", back_populates="objetivos")
+
 
