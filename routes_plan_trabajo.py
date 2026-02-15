@@ -11,6 +11,16 @@ router = APIRouter(prefix="/api/plan", tags=["Plan Trabajo"])
 
 @router.post("/")
 def crear_plan(data: PlanTrabajoCreate, db: Session = Depends(get_db)):
+    # Cerrar planes activos anteriores
+    planes_activos = db.query(PlanTrabajo).filter(
+        PlanTrabajo.paciente_id == data.paciente_id,
+        PlanTrabajo.estado == "activo"
+    ).all()
+
+    for p in planes_activos:
+        p.estado = "cerrado"
+
+    db.commit()
 
     nuevo_plan = PlanTrabajo(
         paciente_id=data.paciente_id,
@@ -40,7 +50,8 @@ def crear_plan(data: PlanTrabajoCreate, db: Session = Depends(get_db)):
             claro=obj.claro,
             capacidad=obj.capacidad,
             merece=obj.merece,
-            seguimiento=obj.seguimiento
+            seguimiento=obj.seguimiento,
+            cumplimiento=obj.cumplimiento
         )
         db.add(nuevo_obj)
 

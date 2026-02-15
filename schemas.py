@@ -124,6 +124,7 @@ class ObjetivoPlanCreate(BaseModel):
     capacidad: int
     merece: int
     seguimiento: str | None = None
+    cumplimiento: int | None = 0
 
 
 class PlanTrabajoCreate(BaseModel):

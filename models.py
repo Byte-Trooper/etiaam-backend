@@ -153,6 +153,7 @@ class ObjetivoPlan(Base):
     merece = Column(Integer)
 
     seguimiento = Column(Text, nullable=True)
+    cumplimiento = Column(Integer, default=0)
 
     plan = relationship("PlanTrabajo", back_populates="objetivos")
 
