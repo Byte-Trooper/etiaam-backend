@@ -126,3 +126,60 @@ def cerrar_plan(plan_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Plan cerrado correctamente"}
+
+
+# ================================================================
+# ACTUALIZAR OBJETIVOS
+# ================================================================
+@router.put("/objetivo/{objetivo_id}")
+def actualizar_cumplimiento(
+    objetivo_id: int,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+
+    objetivo = db.query(ObjetivoPlan).filter(
+        ObjetivoPlan.id == objetivo_id
+    ).first()
+
+    if not objetivo:
+        return {"message": "Objetivo no encontrado"}
+
+    objetivo.cumplimiento = data.get("cumplimiento", 0)
+    db.commit()
+
+    return {"message": "Cumplimiento actualizado"}
+
+
+# ================================================================
+# EVALUAR OBJETIVOS
+# ================================================================
+@router.put("/evaluar/{plan_id}")
+def evaluar_plan(plan_id: int,
+                 data: dict,
+                 db: Session = Depends(get_db)):
+
+    plan = db.query(PlanTrabajo).filter(
+        PlanTrabajo.id == plan_id
+    ).first()
+
+    if not plan:
+        return {"message": "Plan no encontrado"}
+
+    objetivos_data = data.get("objetivos", [])
+
+    for obj_data in objetivos_data:
+
+        objetivo = db.query(ObjetivoPlan).filter(
+            ObjetivoPlan.id == obj_data.get("id"),
+            ObjetivoPlan.plan_id == plan_id
+        ).first()
+
+        if objetivo:
+            objetivo.cumplimiento = obj_data.get("cumplimiento", 0)
+
+    db.commit()
+
+    return {"message": "Evaluación guardada correctamente"}
+
+
