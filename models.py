@@ -152,6 +152,8 @@ class ObjetivoPlan(Base):
     capacidad = Column(Integer)
     merece = Column(Integer)
 
+    seguimiento = Column(Text, nullable=True)
+
     plan = relationship("PlanTrabajo", back_populates="objetivos")
 
 

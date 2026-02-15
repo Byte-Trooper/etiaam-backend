@@ -39,7 +39,8 @@ def crear_plan(data: PlanTrabajoCreate, db: Session = Depends(get_db)):
             posible=obj.posible,
             claro=obj.claro,
             capacidad=obj.capacidad,
-            merece=obj.merece
+            merece=obj.merece,
+            seguimiento=obj.seguimiento
         )
         db.add(nuevo_obj)
 

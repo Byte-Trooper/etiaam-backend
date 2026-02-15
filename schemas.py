@@ -123,6 +123,7 @@ class ObjetivoPlanCreate(BaseModel):
     claro: int
     capacidad: int
     merece: int
+    seguimiento: str | None = None
 
 
 class PlanTrabajoCreate(BaseModel):
