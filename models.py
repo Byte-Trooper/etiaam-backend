@@ -65,6 +65,25 @@ class Consent(Base):
     user_agent = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+# ================================================================
+# CÓDIGOS PARA RECUPERACIÓN DE CONTRASEÑA
+# ================================================================
+class PasswordResetCode(Base):
+    __tablename__ = "password_reset_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Guardamos hash del código, no el código en texto plano
+    code_hash = Column(String(255), nullable=False)
+
+    # Fecha y hora de expiración del código
+    expires_at = Column(DateTime, nullable=False)
+
+    # Para evitar reutilizar el mismo código
+    used = Column(Integer, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 # ================================================================
 # PERFILES (Pacientes y profesionales)

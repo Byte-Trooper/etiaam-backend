@@ -84,10 +84,54 @@ class TokenOut(BaseModel):
     full_name: str
     email: str
 
-    # Nuevos campos opcionales para que Flutter pueda guardarlos
+    # Campos opcionales para Flutter
     country_code: Optional[str] = None
     phone_national: Optional[str] = None
     phone_number: Optional[str] = None
+
+
+# ================================================================
+# RECUPERACIÓN DE CONTRASEÑA
+# ================================================================
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+    @field_validator("code")
+    @classmethod
+    def validate_code(cls, value):
+        value = value.strip()
+
+        if not re.fullmatch(r"\d{6}", value):
+            raise ValueError("El código debe tener exactamente 6 dígitos")
+
+        return value
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value):
+        if len(value) < 6:
+            raise ValueError("La contraseña debe tener mínimo 6 caracteres")
+
+        if not re.search(r"[A-Z]", value):
+            raise ValueError("La contraseña debe incluir una mayúscula")
+
+        if not re.search(r"[0-9]", value):
+            raise ValueError("La contraseña debe incluir un número")
+
+        if not re.search(r'[!@#\$%^&*(),.?":{}|<>]', value):
+            raise ValueError("La contraseña debe incluir un carácter especial")
+
+        return value
+
+
+class MessageOut(BaseModel):
+    message: str
 
 
 # ================================================================
@@ -143,7 +187,7 @@ class UserOut(BaseModel):
     full_name: Optional[str]
     user_type: str
 
-    # Nuevos campos opcionales
+    # Campos opcionales de teléfono
     country_code: Optional[str] = None
     phone_national: Optional[str] = None
     phone_number: Optional[str] = None

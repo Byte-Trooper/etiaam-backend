@@ -1,13 +1,24 @@
 # app.py
+import random
+from datetime import datetime, timedelta
+
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import OperationalError
 
 from db import Base, engine, get_db
-from models import User, Consent
-from schemas import RegisterIn, LoginIn, TokenOut
+from models import User, Consent, PasswordResetCode
+from schemas import (
+    RegisterIn,
+    LoginIn,
+    TokenOut,
+    ForgotPasswordIn,
+    ResetPasswordIn,
+    MessageOut,
+)
 from auth import hash_password, verify_password, create_access_token, sha256_hex
+from email_service import send_password_reset_email
 from routes_profile import router as profile_router
 from routes_evaluations import router as evaluations_router
 from routes_plan_trabajo import router as plan_router
@@ -127,7 +138,7 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
         full_name=payload.full_name,
         user_type=payload.user_type,
 
-        # Nuevos campos para login con celular
+        # Campos para login con celular
         country_code=payload.country_code,
         phone_national=payload.phone_national,
         phone_number=payload.phone_number,
@@ -225,4 +236,115 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
         country_code=user.country_code,
         phone_national=user.phone_national,
         phone_number=user.phone_number,
+    )
+
+
+# ============================================================
+# RECUPERACIÓN DE CONTRASEÑA - SOLICITAR CÓDIGO
+# ============================================================
+@app.post("/password/forgot", response_model=MessageOut)
+def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)):
+    """
+    Envía un código de recuperación al correo del usuario.
+
+    Por seguridad, aunque el correo no exista, regresamos el mismo mensaje.
+    Así evitamos revelar qué correos están registrados.
+    """
+
+    generic_message = "Si el correo está registrado, enviaremos un código de recuperación."
+
+    user = db.query(User).filter(User.email == payload.email).first()
+
+    if not user:
+        return MessageOut(message=generic_message)
+
+    # Invalidar códigos anteriores no usados del usuario
+    previous_codes = (
+        db.query(PasswordResetCode)
+        .filter(
+            PasswordResetCode.user_id == user.id,
+            PasswordResetCode.used == 0,
+        )
+        .all()
+    )
+
+    for item in previous_codes:
+        item.used = 1
+
+    # Código de 6 dígitos
+    code = f"{random.randint(0, 999999):06d}"
+
+    reset_code = PasswordResetCode(
+        user_id=user.id,
+        code_hash=sha256_hex(code),
+        expires_at=datetime.utcnow() + timedelta(minutes=10),
+        used=0,
+    )
+
+    db.add(reset_code)
+    db.commit()
+
+    try:
+        send_password_reset_email(user.email, code)
+    except Exception as e:
+        print(f"Error enviando correo de recuperación: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo enviar el correo de recuperación. Intenta más tarde.",
+        )
+
+    return MessageOut(message=generic_message)
+
+
+# ============================================================
+# RECUPERACIÓN DE CONTRASEÑA - RESTABLECER CONTRASEÑA
+# ============================================================
+@app.post("/password/reset", response_model=MessageOut)
+def reset_password(payload: ResetPasswordIn, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == payload.email).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="Código inválido o expirado",
+        )
+
+    code_hash = sha256_hex(payload.code)
+
+    reset_code = (
+        db.query(PasswordResetCode)
+        .filter(
+            PasswordResetCode.user_id == user.id,
+            PasswordResetCode.code_hash == code_hash,
+            PasswordResetCode.used == 0,
+        )
+        .order_by(PasswordResetCode.created_at.desc())
+        .first()
+    )
+
+    if not reset_code:
+        raise HTTPException(
+            status_code=400,
+            detail="Código inválido o expirado",
+        )
+
+    if reset_code.expires_at < datetime.utcnow():
+        reset_code.used = 1
+        db.commit()
+
+        raise HTTPException(
+            status_code=400,
+            detail="Código inválido o expirado",
+        )
+
+    # Actualizar contraseña
+    user.password_hash = hash_password(payload.new_password)
+
+    # Marcar código como usado
+    reset_code.used = 1
+
+    db.commit()
+
+    return MessageOut(
+        message="Contraseña actualizada correctamente."
     )
