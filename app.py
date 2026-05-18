@@ -1,6 +1,7 @@
 # app.py
 import random
 from datetime import datetime, timedelta
+import traceback
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -287,7 +288,9 @@ def forgot_password(payload: ForgotPasswordIn, db: Session = Depends(get_db)):
     try:
         send_password_reset_email(user.email, code)
     except Exception as e:
-        print(f"Error enviando correo de recuperación: {e}")
+        print("Error enviando correo de recuperación:")
+        traceback.print_exc()
+
         raise HTTPException(
             status_code=500,
             detail="No se pudo enviar el correo de recuperación. Intenta más tarde.",
