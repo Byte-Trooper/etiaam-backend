@@ -11,11 +11,39 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+
+    # Correo: se mantiene como identificador principal tradicional
     email = Column(String(120), unique=True, nullable=False)
+
+    # Contraseña cifrada
     password_hash = Column(String(255), nullable=False)
+
+    # Datos generales
     full_name = Column(String(120))
     user_type = Column(String(50))
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # ============================================================
+    # TELÉFONO PARA LOGIN
+    # ============================================================
+    # country_code:
+    #   Guarda la lada del país. Ejemplo:
+    #   México: +52
+    #   Perú:   +51
+    #
+    # phone_national:
+    #   Guarda solo los 10 dígitos que escribe el usuario.
+    #   Ejemplo: 8331234567
+    #
+    # phone_number:
+    #   Guarda el teléfono completo con lada.
+    #   Ejemplo: +528331234567
+    #
+    # Este campo sí debe ser único porque se usará para iniciar sesión.
+    # ============================================================
+    country_code = Column(String(5), nullable=True)
+    phone_national = Column(String(10), nullable=True)
+    phone_number = Column(String(20), unique=True, index=True, nullable=True)
 
     # Relaciones
     profile = relationship("Profile", back_populates="user", uselist=False)
@@ -107,6 +135,7 @@ class CompetenciasProfesionales(Base):
 
     user = relationship("User", back_populates="competencias")
 
+
 # ================================================================
 # PLAN DE TRABAJO
 # ================================================================
@@ -127,7 +156,11 @@ class PlanTrabajo(Base):
 
     estado = Column(String(20), default="activo")  # activo / cerrado
 
-    objetivos = relationship("ObjetivoPlan", back_populates="plan", cascade="all, delete")
+    objetivos = relationship(
+        "ObjetivoPlan",
+        back_populates="plan",
+        cascade="all, delete",
+    )
 
 
 # ================================================================
@@ -146,7 +179,4 @@ class ObjetivoPlan(Base):
 
     cumplimiento = Column(Integer, default=0)
 
-    # 🔹 ESTA LÍNEA ES LA QUE FALTA
     plan = relationship("PlanTrabajo", back_populates="objetivos")
-
-

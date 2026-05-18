@@ -1,16 +1,18 @@
 # routes_profile.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from db import get_db
 from models import User, Profile
 from schemas import ProfileIn, ProfileOut
 from auth import get_current_user
 
+
 router = APIRouter(prefix="/api", tags=["Perfil"])
 
 
 # ================================================================
-# 🧩 CREAR / ACTUALIZAR PERFIL
+# CREAR / ACTUALIZAR PERFIL
 # ================================================================
 @router.post("/profile", response_model=ProfileOut)
 def create_or_update_profile(
@@ -24,7 +26,7 @@ def create_or_update_profile(
     if not user:
         raise HTTPException(404, "Usuario no encontrado")
 
-    # buscar perfil
+    # Buscar perfil
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
 
     if not profile:
@@ -36,22 +38,25 @@ def create_or_update_profile(
 
     db.commit()
     db.refresh(profile)
+
     return profile
 
 
 # ================================================================
-# 🧩 OBTENER PERFIL
+# OBTENER PERFIL
 # ================================================================
 @router.get("/profile/{user_id}", response_model=ProfileOut)
 def get_profile(user_id: int, db: Session = Depends(get_db)):
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
+
     if not profile:
         raise HTTPException(404, "Perfil no encontrado")
+
     return profile
 
 
 # ================================================================
-# 🧩 PERFIL DEL USUARIO LOGEADO
+# PERFIL DEL USUARIO LOGEADO
 # ================================================================
 @router.get("/me")
 def get_my_profile(
@@ -70,17 +75,24 @@ def get_my_profile(
         "email": user.email,
         "full_name": user.full_name,
         "user_type": user.user_type,
+
+        # Nuevos campos de teléfono guardados en users
+        "country_code": user.country_code,
+        "phone_national": user.phone_national,
+        "phone_number": user.phone_number,
+
         "profile": profile.__dict__ if profile else None,
     }
 
 
 # ================================================================
-# 🧩 LISTA SIMPLE DE PACIENTES (ACTUAL)
+# LISTA SIMPLE DE PACIENTES
 # ================================================================
 @router.get("/pacientes")
-def listar_pacientes(current_user: dict = Depends(get_current_user),
-                     db: Session = Depends(get_db)):
-
+def listar_pacientes(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     if current_user.get("user_type") != "profesional":
         raise HTTPException(403, "Acceso restringido a profesionales")
 
@@ -91,19 +103,25 @@ def listar_pacientes(current_user: dict = Depends(get_current_user),
             "id": p.id,
             "full_name": p.full_name,
             "email": p.email,
-            "user_type": p.user_type
+            "user_type": p.user_type,
+
+            # Nuevos campos de teléfono
+            "country_code": p.country_code,
+            "phone_national": p.phone_national,
+            "phone_number": p.phone_number,
         }
         for p in pacientes
     ]
 
 
 # ================================================================
-# 🆕 NUEVO ENDPOINT COMPLETO (RECOMENDADO)
+# ENDPOINT COMPLETO DE PACIENTES
 # ================================================================
 @router.get("/pacientes/detalle")
-def listar_pacientes_detalle(current_user: dict = Depends(get_current_user),
-                             db: Session = Depends(get_db)):
-
+def listar_pacientes_detalle(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     if current_user.get("user_type") != "profesional":
         raise HTTPException(403, "Acceso restringido")
 
@@ -121,14 +139,26 @@ def listar_pacientes_detalle(current_user: dict = Depends(get_current_user),
             "id": user.id,
             "nombre": profile.nombre,
             "apellido": profile.apellido,
-            "full_name": f"{profile.nombre} {profile.apellido}",
+            "full_name": f"{profile.nombre or ''} {profile.apellido or ''}".strip(),
             "nss": profile.nss or "00000",
+
+            # Teléfono del perfil, si lo llenan después
             "telefono": profile.telefono,
+
+            # Teléfono del usuario, usado para login
+            "country_code": user.country_code,
+            "phone_national": user.phone_national,
+            "phone_number": user.phone_number,
+
             "unidad_medica": profile.unidad_medica,
         })
 
     return resultado
 
+
+# ================================================================
+# INFORMACIÓN DE UN PACIENTE
+# ================================================================
 @router.get("/pacientes/info/{user_id}")
 def obtener_info_paciente(
     user_id: int,
@@ -145,11 +175,13 @@ def obtener_info_paciente(
         .filter(User.id == user_id, User.user_type == "paciente")
         .first()
     )
+
     if not user:
         raise HTTPException(404, "Paciente no encontrado")
 
     # Perfil asociado
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
+
     if not profile:
         raise HTTPException(404, "Perfil no encontrado")
 
@@ -163,11 +195,17 @@ def obtener_info_paciente(
         "apellido": profile.apellido,
         "genero": profile.genero,
         "edad": profile.edad,
+
+        # Teléfono del perfil
         "telefono": profile.telefono,
+
+        # Teléfono del usuario, usado para login
+        "country_code": user.country_code,
+        "phone_national": user.phone_national,
+        "phone_number": user.phone_number,
+
         "direccion": profile.direccion,
         "unidad_medica": profile.unidad_medica,
         "fecha_nacimiento": profile.fecha_nacimiento,
         "nss": profile.nss,
     }
-
-

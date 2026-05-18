@@ -1,7 +1,8 @@
 # schemas.py
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import re
 
 
 # ================================================================
@@ -12,18 +13,81 @@ class RegisterIn(BaseModel):
     password: str
     full_name: str
     user_type: str
+
+    # Teléfono para login
+    country_code: str
+    phone_national: str
+    phone_number: str
+
     consent_text: str
     consent_version: str
 
+    @field_validator("country_code")
+    @classmethod
+    def validate_country_code(cls, value):
+        if value not in ["+52", "+51"]:
+            raise ValueError("La lada debe ser +52 para México o +51 para Perú")
+        return value
+
+    @field_validator("phone_national")
+    @classmethod
+    def validate_phone_national(cls, value):
+        if not re.fullmatch(r"\d{10}", value):
+            raise ValueError("El número celular debe tener exactamente 10 dígitos")
+        return value
+
+    @field_validator("phone_number")
+    @classmethod
+    def validate_phone_number(cls, value):
+        if not re.fullmatch(r"\+\d{12}", value):
+            raise ValueError(
+                "El número completo debe incluir lada y 10 dígitos. Ejemplo: +528331234567"
+            )
+        return value
+
+
 class LoginIn(BaseModel):
-    email: EmailStr
+    # Puede ser correo electrónico o celular de 10 dígitos
+    identifier: str
     password: str
+
+    # Se usa cuando identifier es celular de 10 dígitos
+    country_code: Optional[str] = None
+
+    @field_validator("identifier")
+    @classmethod
+    def validate_identifier(cls, value):
+        value = value.strip()
+
+        if not value:
+            raise ValueError("Debes ingresar correo electrónico o celular")
+
+        is_email = "@" in value
+        is_phone = re.fullmatch(r"\d{10}", value)
+
+        if not is_email and not is_phone:
+            raise ValueError("Ingresa un correo válido o un celular de 10 dígitos")
+
+        return value
+
+    @field_validator("country_code")
+    @classmethod
+    def validate_login_country_code(cls, value):
+        if value is not None and value not in ["+52", "+51"]:
+            raise ValueError("La lada debe ser +52 para México o +51 para Perú")
+        return value
+
 
 class TokenOut(BaseModel):
     access_token: str
     user_type: str
     full_name: str
     email: str
+
+    # Nuevos campos opcionales para que Flutter pueda guardarlos
+    country_code: Optional[str] = None
+    phone_national: Optional[str] = None
+    phone_number: Optional[str] = None
 
 
 # ================================================================
@@ -43,6 +107,7 @@ class ProfileIn(BaseModel):
     cedula_profesional: Optional[str] = None
     unidad_medica: Optional[str] = None
 
+
 class ProfileOut(ProfileIn):
     id: int
     user_id: int
@@ -61,6 +126,7 @@ class EvaluationIn(BaseModel):
     respuestas: Optional[dict] = None
     observaciones: Optional[str] = None
 
+
 class EvaluationOut(EvaluationIn):
     id: int
     user_id: int
@@ -76,6 +142,11 @@ class UserOut(BaseModel):
     email: str
     full_name: Optional[str]
     user_type: str
+
+    # Nuevos campos opcionales
+    country_code: Optional[str] = None
+    phone_national: Optional[str] = None
+    phone_number: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -103,7 +174,7 @@ class CompetenciasOut(BaseModel):
     f3_promedio: float
     f4_promedio: float
     puntaje_total: float
-    fecha_aplicacion: Optional[str] = None  
+    fecha_aplicacion: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -120,7 +191,7 @@ class ObjetivoPlanCreate(BaseModel):
     cumplimiento: int = 0
 
 
-class PlanTrabajoCreate(BaseModel):     
+class PlanTrabajoCreate(BaseModel):
     paciente_id: int
     profesional_id: int
     objetivo_principal: str

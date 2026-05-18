@@ -144,7 +144,7 @@ def guardar_competencias(
 
     registro = CompetenciasProfesionales(
         user_id=data.user_id,
-        respuestas=json.dumps(data.respuestas),  # 👈 convertir dict → string JSON
+        respuestas=json.dumps(data.respuestas),  #convertir dict → string JSON
         f1_promedio=data.f1_promedio,
         f2_promedio=data.f2_promedio,
         f3_promedio=data.f3_promedio,

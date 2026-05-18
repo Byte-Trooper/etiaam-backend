@@ -36,7 +36,7 @@ app.include_router(profile_router)
 app.include_router(evaluations_router)
 app.include_router(plan_router)
 
-print("✅ Routers cargados correctamente: /api/profile y /api/evaluations activos")
+print("Routers cargados correctamente: /api/profile y /api/evaluations activos")
 
 # ============================================================
 # Endpoints principales
@@ -45,7 +45,6 @@ print("✅ Routers cargados correctamente: /api/profile y /api/evaluations activ
 @app.get("/health")
 def health():
     return {"ok": True}
-
 
 @app.get("/consent/latest")
 def latest_consent():
@@ -68,7 +67,6 @@ def latest_consent():
         "\nSi tengo dudas sobre mis derechos como participante en la investigación, puedo contactar al Dr. Carlos Eduardo Pretel Vergel (Centro de Salud donde me atiendo) o al Dr. José Alfredo Álvarez (Jefatura de Enseñanza, Clínica ISSSTE).\n"
     )
     return {"version": "v2.0", "text": text}
-
 
 @app.post("/register", response_model=TokenOut)
 def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
@@ -104,7 +102,6 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
         full_name=user.full_name,
         email=user.email
     )
-
 
 @app.post("/login", response_model=TokenOut)
 def login(payload: LoginIn, db: Session = Depends(get_db)):
