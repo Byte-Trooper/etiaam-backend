@@ -1,50 +1,27 @@
 # email_service.py
 import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
-SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+RESEND_FROM = os.getenv("RESEND_FROM", "ETIAAM <onboarding@resend.dev>")
+RESEND_API_URL = "https://api.resend.com/emails"
 
 
 def send_password_reset_email(to_email: str, code: str) -> None:
     """
-    Envía un código de recuperación de contraseña por correo electrónico.
+    Envía un código de recuperación de contraseña por correo electrónico
+    usando Resend API por HTTPS.
 
-    Importante:
-    - No se debe enviar la contraseña actual.
-    - El código debe expirar en backend.
-    - La contraseña SMTP debe venir desde variables de entorno.
+    Ya no se usa SMTP, porque Render puede bloquear puertos SMTP como 587.
     """
 
-    if not SMTP_USER or not SMTP_PASSWORD:
+    if not RESEND_API_KEY:
         raise RuntimeError(
-            "Faltan variables SMTP_USER o SMTP_PASSWORD en el entorno."
+            "Falta la variable de entorno RESEND_API_KEY."
         )
 
     subject = "Código de recuperación ETIAAM"
-
-    text_body = f"""
-Hola,
-
-Recibimos una solicitud para restablecer tu contraseña en ETIAAM.
-
-Tu código de recuperación es:
-
-{code}
-
-Este código expirará en 10 minutos.
-
-Si no solicitaste este cambio, puedes ignorar este mensaje.
-
-Atentamente,
-Equipo ETIAAM
-"""
 
     html_body = f"""
     <html>
@@ -74,15 +51,44 @@ Equipo ETIAAM
     </html>
     """
 
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = SMTP_FROM
-    message["To"] = to_email
+    text_body = f"""
+Hola,
 
-    message.attach(MIMEText(text_body, "plain", "utf-8"))
-    message.attach(MIMEText(html_body, "html", "utf-8"))
+Recibimos una solicitud para restablecer tu contraseña en ETIAAM.
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(SMTP_FROM, to_email, message.as_string())
+Tu código de recuperación es:
+
+{code}
+
+Este código expirará en 10 minutos.
+
+Si no solicitaste este cambio, puedes ignorar este mensaje.
+
+Atentamente,
+Equipo ETIAAM
+"""
+
+    payload = {
+        "from": RESEND_FROM,
+        "to": [to_email],
+        "subject": subject,
+        "html": html_body,
+        "text": text_body,
+    }
+
+    headers = {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    response = requests.post(
+        RESEND_API_URL,
+        json=payload,
+        headers=headers,
+        timeout=20,
+    )
+
+    if response.status_code not in (200, 201, 202):
+        raise RuntimeError(
+            f"Error Resend {response.status_code}: {response.text}"
+        )
