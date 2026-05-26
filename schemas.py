@@ -153,8 +153,18 @@ class ProfileIn(BaseModel):
 
 
 class ProfileOut(ProfileIn):
-    id: int
+    id: Optional[int] = None
     user_id: int
+
+    # Teléfono oficial de la cuenta, almacenado en users
+    country_code: Optional[str] = None
+    phone_national: Optional[str] = None
+    phone_number: Optional[str] = None
+
+    # Datos generales de la cuenta
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    user_type: Optional[str] = None
 
     class Config:
         from_attributes = True
