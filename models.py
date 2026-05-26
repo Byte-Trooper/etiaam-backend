@@ -124,7 +124,7 @@ class Evaluation(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     evaluador_id = Column(Integer, nullable=True)
     test_type = Column(String(100))
-    score = Column(Float)
+    score = Column(Integer)
     respuestas_json = Column(Text, nullable=True)
     observaciones = Column(Text, nullable=True)
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)

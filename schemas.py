@@ -166,7 +166,7 @@ class ProfileOut(ProfileIn):
 class EvaluationIn(BaseModel):
     user_id: Optional[int] = None
     test_type: str
-    score: float
+    score: Optional[int] = None
     respuestas: Optional[dict] = None
     observaciones: Optional[str] = None
 
