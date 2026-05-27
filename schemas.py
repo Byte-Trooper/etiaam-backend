@@ -9,7 +9,7 @@ import re
 # AUTH (Login / Registro / Token)
 # ================================================================
 class RegisterIn(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
     password: str
     full_name: str
     user_type: str
@@ -82,7 +82,7 @@ class TokenOut(BaseModel):
     access_token: str
     user_type: str
     full_name: str
-    email: str
+    email: Optional[str] = None
 
     # Campos opcionales para Flutter
     country_code: Optional[str] = None

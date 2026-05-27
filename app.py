@@ -103,12 +103,15 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
         )
 
     # Validar correo duplicado
-    existing_email = db.query(User).filter(User.email == payload.email).first()
-    if existing_email:
-        raise HTTPException(
-            status_code=409,
-            detail="Email ya registrado",
-        )
+    email = payload.email.lower().strip() if payload.email else None
+
+    if email:
+        existing_email = db.query(User).filter(User.email == email).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=409,
+                detail="Email ya registrado",
+            )
 
     # Validar teléfono duplicado
     existing_phone = (
@@ -134,7 +137,7 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
         )
 
     user = User(
-        email=payload.email,
+        email=email,
         password_hash=hash_password(payload.password),
         full_name=payload.full_name,
         user_type=payload.user_type,
