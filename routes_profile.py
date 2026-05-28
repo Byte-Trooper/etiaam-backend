@@ -25,15 +25,24 @@ def _payload_to_dict(payload: ProfileIn) -> dict:
     return payload.dict(exclude_unset=True)
 
 
+def _expected_phone_length(country_code: str | None) -> int:
+    """
+    Longitud del número nacional por país.
+    - México (+52): 10 dígitos
+    - Perú (+51): 9 dígitos
+    """
+    return 9 if country_code == "+51" else 10
+
+
 def _normalizar_telefono(raw_phone: str | None, default_country_code: str | None = "+52"):
     """
-    Recibe teléfono completo (+528331234567) o 10 dígitos (8331234567)
-    y regresa:
+    Recibe teléfono completo (+528331234567 / +51980973062)
+    o número nacional sin lada y regresa:
       country_code, phone_national, phone_number
 
     Reglas:
     - México: +52 + 10 dígitos
-    - Perú: +51 + 10 dígitos, según la validación actual del proyecto
+    - Perú: +51 + 9 dígitos
     """
     if not raw_phone:
         return None
@@ -43,29 +52,26 @@ def _normalizar_telefono(raw_phone: str | None, default_country_code: str | None
 
     country_code = default_country_code if default_country_code in ["+52", "+51"] else "+52"
 
-    if raw.startswith("+52") or digits.startswith("52"):
+    if raw.startswith("+52") or (len(digits) == 12 and digits.startswith("52")):
         country_code = "+52"
-        if digits.startswith("52"):
-            phone_national = digits[2:]
-        else:
-            phone_national = digits
-    elif raw.startswith("+51") or digits.startswith("51"):
+        phone_national = digits[2:] if digits.startswith("52") else digits
+    elif raw.startswith("+51") or (len(digits) == 11 and digits.startswith("51")):
         country_code = "+51"
-        if digits.startswith("51"):
-            phone_national = digits[2:]
-        else:
-            phone_national = digits
+        phone_national = digits[2:] if digits.startswith("51") else digits
     else:
         phone_national = digits
 
-    # Nos quedamos con los últimos 10 dígitos por seguridad si llegó con lada.
-    if len(phone_national) > 10:
-        phone_national = phone_national[-10:]
+    expected_length = _expected_phone_length(country_code)
 
-    if not re.fullmatch(r"\d{10}", phone_national):
+    # Si llegó con lada o caracteres extra, conserva los últimos dígitos nacionales esperados.
+    if len(phone_national) > expected_length:
+        phone_national = phone_national[-expected_length:]
+
+    if not re.fullmatch(rf"\d{{{expected_length}}}", phone_national):
+        pais = "Perú" if country_code == "+51" else "México"
         raise HTTPException(
             status_code=400,
-            detail="El teléfono debe contener exactamente 10 dígitos nacionales.",
+            detail=f"El teléfono de {pais} debe contener exactamente {expected_length} dígitos nacionales.",
         )
 
     phone_number = f"{country_code}{phone_national}"

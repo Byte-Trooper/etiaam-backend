@@ -31,27 +31,45 @@ class RegisterIn(BaseModel):
 
     @field_validator("phone_national")
     @classmethod
-    def validate_phone_national(cls, value):
-        if not re.fullmatch(r"\d{10}", value):
-            raise ValueError("El número celular debe tener exactamente 10 dígitos")
+    def validate_phone_national(cls, value, info):
+        country_code = info.data.get("country_code")
+
+        if country_code == "+52":
+            if not re.fullmatch(r"\d{10}", value):
+                raise ValueError("El número celular de México debe tener exactamente 10 dígitos")
+        elif country_code == "+51":
+            if not re.fullmatch(r"\d{9}", value):
+                raise ValueError("El número celular de Perú debe tener exactamente 9 dígitos")
+        else:
+            raise ValueError("Selecciona una lada válida")
+
         return value
 
     @field_validator("phone_number")
     @classmethod
-    def validate_phone_number(cls, value):
-        if not re.fullmatch(r"\+\d{12}", value):
-            raise ValueError(
-                "El número completo debe incluir lada y 10 dígitos. Ejemplo: +528331234567"
-            )
+    def validate_phone_number(cls, value, info):
+        country_code = info.data.get("country_code")
+
+        if country_code == "+52":
+            if not re.fullmatch(r"\+52\d{10}", value):
+                raise ValueError("El número completo de México debe incluir lada +52 y 10 dígitos")
+        elif country_code == "+51":
+            if not re.fullmatch(r"\+51\d{9}", value):
+                raise ValueError("El número completo de Perú debe incluir lada +51 y 9 dígitos")
+        else:
+            raise ValueError("Selecciona una lada válida")
+
         return value
 
 
 class LoginIn(BaseModel):
-    # Puede ser correo electrónico o celular de 10 dígitos
+    # Puede ser correo electrónico o celular nacional.
+    # México (+52): 10 dígitos
+    # Perú (+51): 9 dígitos
     identifier: str
     password: str
 
-    # Se usa cuando identifier es celular de 10 dígitos
+    # Se usa cuando identifier es celular nacional
     country_code: Optional[str] = None
 
     @field_validator("identifier")
@@ -63,10 +81,10 @@ class LoginIn(BaseModel):
             raise ValueError("Debes ingresar correo electrónico o celular")
 
         is_email = "@" in value
-        is_phone = re.fullmatch(r"\d{10}", value)
+        is_phone = re.fullmatch(r"\d{9,10}", value)
 
         if not is_email and not is_phone:
-            raise ValueError("Ingresa un correo válido o un celular de 10 dígitos")
+            raise ValueError("Ingresa un correo válido o un celular nacional válido")
 
         return value
 
@@ -238,17 +256,16 @@ class CompetenciasOut(BaseModel):
 #     SCHEMA PARA PLAN DE TRABAJO
 # =============================================================
 class ObjetivoPlanCreate(BaseModel):
-    descripcion: str  # Meta del acuerdo
-    actividad: str    # Acción acordada
+    descripcion: str
+    actividad: str
     recursos: Optional[str] = None
     seguimiento: Optional[str] = None
-    fecha_revision: Optional[str] = None
     cumplimiento: int = 0
 
 
 class PlanTrabajoCreate(BaseModel):
     paciente_id: int
-    profesional_id: Optional[int] = None
+    profesional_id: int
     objetivo_principal: str
     plan_ejecucion: str
     recursos_necesarios: Optional[str] = None
@@ -259,7 +276,7 @@ class PlanTrabajoCreate(BaseModel):
 class PlanTrabajoOut(BaseModel):
     id: int
     paciente_id: int
-    profesional_id: Optional[int] = None
+    profesional_id: int
     fecha_creacion: datetime
     objetivo_principal: str
     plan_ejecucion: str
