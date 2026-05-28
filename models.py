@@ -164,7 +164,7 @@ class PlanTrabajo(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     paciente_id = Column(Integer, ForeignKey("users.id"))
-    profesional_id = Column(Integer, ForeignKey("users.id"))
+    profesional_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
 
@@ -186,6 +186,20 @@ class PlanTrabajo(Base):
 # OBJETIVOS DEL PLAN DE TRABAJO
 # ================================================================
 class ObjetivoPlan(Base):
+    __tablename__ = "objetivos_plan"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(Integer, ForeignKey("plan_trabajo.id"))
+
+    descripcion = Column(String(255))
+    actividad = Column(String(255))
+    recursos = Column(String(255))
+    seguimiento = Column(Text)
+    fecha_revision = Column(String(20), nullable=True)
+
+    cumplimiento = Column(Integer, default=0)
+
+    plan = relationship("PlanTrabajo", back_populates="objetivos")
     __tablename__ = "objetivos_plan"
 
     id = Column(Integer, primary_key=True, index=True)

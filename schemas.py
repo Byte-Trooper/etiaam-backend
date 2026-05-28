@@ -238,16 +238,17 @@ class CompetenciasOut(BaseModel):
 #     SCHEMA PARA PLAN DE TRABAJO
 # =============================================================
 class ObjetivoPlanCreate(BaseModel):
-    descripcion: str
-    actividad: str
+    descripcion: str  # Meta del acuerdo
+    actividad: str    # Acción acordada
     recursos: Optional[str] = None
     seguimiento: Optional[str] = None
+    fecha_revision: Optional[str] = None
     cumplimiento: int = 0
 
 
 class PlanTrabajoCreate(BaseModel):
     paciente_id: int
-    profesional_id: int
+    profesional_id: Optional[int] = None
     objetivo_principal: str
     plan_ejecucion: str
     recursos_necesarios: Optional[str] = None
@@ -258,7 +259,7 @@ class PlanTrabajoCreate(BaseModel):
 class PlanTrabajoOut(BaseModel):
     id: int
     paciente_id: int
-    profesional_id: int
+    profesional_id: Optional[int] = None
     fecha_creacion: datetime
     objetivo_principal: str
     plan_ejecucion: str

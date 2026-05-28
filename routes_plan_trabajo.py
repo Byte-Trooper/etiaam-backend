@@ -1,124 +1,29 @@
 # routes_plan_trabajo.py
 
+from datetime import datetime
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
 from db import get_db
 from models import PlanTrabajo, ObjetivoPlan
 from schemas import PlanTrabajoCreate
-from datetime import datetime
 
 router = APIRouter(prefix="/api/plan", tags=["Plan Trabajo"])
 
-@router.post("/")
-def crear_plan(data: PlanTrabajoCreate, db: Session = Depends(get_db)):
 
-    # Cerrar planes activos anteriores
-    planes_activos = db.query(PlanTrabajo).filter(
-        PlanTrabajo.paciente_id == data.paciente_id,
-        PlanTrabajo.estado == "activo"
-    ).all()
-
-    for p in planes_activos:
-        p.estado = "cerrado"
-
-    db.commit()
-
-    nuevo_plan = PlanTrabajo(
-        paciente_id=data.paciente_id,
-        profesional_id=data.profesional_id,
-        fecha_creacion=datetime.utcnow(),
-        objetivo_principal=data.objetivo_principal,
-        plan_ejecucion=data.plan_ejecucion,
-        recursos_necesarios=data.recursos_necesarios,
-        emociones_asociadas=data.emociones_asociadas,
-        estado="activo"
-    )
-
-    db.add(nuevo_plan)
-    db.commit()
-    db.refresh(nuevo_plan)
-
-    # Crear objetivos simplificados
-    for obj in data.objetivos:
-        nuevo_obj = ObjetivoPlan(
-            plan_id=nuevo_plan.id,
-            descripcion=obj.descripcion,
-            actividad=obj.actividad,
-            recursos=obj.recursos,
-            seguimiento=obj.seguimiento,
-            cumplimiento=obj.cumplimiento
-        )
-        db.add(nuevo_obj)
-
-    db.commit()
-
-    return {"message": "Plan creado correctamente"}
-
-    # Cerrar planes activos anteriores
-    planes_activos = db.query(PlanTrabajo).filter(
-        PlanTrabajo.paciente_id == data.paciente_id,
-        PlanTrabajo.estado == "activo"
-    ).all()
-
-    for p in planes_activos:
-        p.estado = "cerrado"
-
-    db.commit()
-
-    nuevo_plan = PlanTrabajo(
-        paciente_id=data.paciente_id,
-        profesional_id=data.profesional_id,
-        fecha_creacion=datetime.utcnow(),
-        objetivo_principal=data.objetivo_principal,
-        plan_ejecucion=data.plan_ejecucion,
-        recursos_necesarios=data.recursos_necesarios,
-        emociones_asociadas=data.emociones_asociadas,
-        estado="activo"
-    )
-
-    db.add(nuevo_plan)
-    db.commit()
-    db.refresh(nuevo_plan)
-
-    for obj in data.objetivos:
-        nuevo_obj = ObjetivoPlan(
-            plan_id=nuevo_plan.id,
-            descripcion=obj.descripcion,
-            actividad=obj.actividad,
-            recursos=obj.recursos,
-            cronograma=obj.cronograma,
-            fecha_seguimiento=obj.fecha_seguimiento,
-            importante=obj.importante,
-            posible=obj.posible,
-            claro=obj.claro,
-            capacidad=obj.capacidad,
-            merece=obj.merece,
-            seguimiento=obj.seguimiento,
-            cumplimiento=obj.cumplimiento
-        )
-        db.add(nuevo_obj)
-
-    db.commit()
-
-    return {"message": "Plan creado correctamente"}
+def _serializar_objetivo(obj: ObjetivoPlan):
+    return {
+        "id": obj.id,
+        "descripcion": obj.descripcion,
+        "actividad": obj.actividad,
+        "recursos": obj.recursos,
+        "seguimiento": obj.seguimiento,
+        "fecha_revision": obj.fecha_revision,
+        "cumplimiento": obj.cumplimiento or 0,
+    }
 
 
-# ================================================================
-# OBTENER ULTIMO PLAN
-# ================================================================
-@router.get("/ultimo/{paciente_id}")
-def obtener_ultimo_plan(paciente_id: int, db: Session = Depends(get_db)):
-
-    plan = (
-        db.query(PlanTrabajo)
-        .filter(PlanTrabajo.paciente_id == paciente_id)
-        .order_by(PlanTrabajo.fecha_creacion.desc())
-        .first()
-    )
-
-    if not plan:
-        return {"message": "No hay plan disponible"}
-
+def _serializar_plan(plan: PlanTrabajo):
     return {
         "id": plan.id,
         "paciente_id": plan.paciente_id,
@@ -129,23 +34,90 @@ def obtener_ultimo_plan(paciente_id: int, db: Session = Depends(get_db)):
         "recursos_necesarios": plan.recursos_necesarios,
         "emociones_asociadas": plan.emociones_asociadas,
         "estado": plan.estado,
-        "objetivos": [
-            {
-                "id": obj.id,
-                "descripcion": obj.descripcion,
-                "actividad": obj.actividad,
-                "recursos": obj.recursos,
-                "seguimiento": obj.seguimiento,
-                "cumplimiento": obj.cumplimiento
-            }
-            for obj in plan.objetivos
-        ]
+        "objetivos": [_serializar_objetivo(obj) for obj in plan.objetivos],
     }
 
 
+# ================================================================
+# CREAR PLAN DE TRABAJO
+# ================================================================
+@router.post("/")
+def crear_plan(data: PlanTrabajoCreate, db: Session = Depends(get_db)):
+    """
+    Crea un nuevo plan de trabajo.
+    Al crear uno nuevo, se cierran automáticamente los planes activos anteriores
+    del mismo paciente. Los objetivos se usan como acuerdos de consulta:
+    meta, acción, fecha de revisión y cumplimiento.
+    """
+
+    planes_activos = (
+        db.query(PlanTrabajo)
+        .filter(
+            PlanTrabajo.paciente_id == data.paciente_id,
+            PlanTrabajo.estado == "activo",
+        )
+        .all()
+    )
+
+    for plan in planes_activos:
+        plan.estado = "cerrado"
+
+    nuevo_plan = PlanTrabajo(
+        paciente_id=data.paciente_id,
+        profesional_id=data.profesional_id,
+        fecha_creacion=datetime.utcnow(),
+        objetivo_principal=data.objetivo_principal,
+        plan_ejecucion=data.plan_ejecucion,
+        recursos_necesarios=data.recursos_necesarios,
+        emociones_asociadas=data.emociones_asociadas,
+        estado="activo",
+    )
+
+    db.add(nuevo_plan)
+    db.commit()
+    db.refresh(nuevo_plan)
+
+    for obj in data.objetivos:
+        nuevo_obj = ObjetivoPlan(
+            plan_id=nuevo_plan.id,
+            descripcion=obj.descripcion,
+            actividad=obj.actividad,
+            recursos=obj.recursos,
+            seguimiento=obj.seguimiento,
+            fecha_revision=obj.fecha_revision,
+            cumplimiento=obj.cumplimiento,
+        )
+        db.add(nuevo_obj)
+
+    db.commit()
+    db.refresh(nuevo_plan)
+
+    return {
+        "message": "Plan creado correctamente",
+        "plan_id": nuevo_plan.id,
+    }
+
 
 # ================================================================
-# OBTENER HISTORIAL
+# OBTENER ÚLTIMO PLAN
+# ================================================================
+@router.get("/ultimo/{paciente_id}")
+def obtener_ultimo_plan(paciente_id: int, db: Session = Depends(get_db)):
+    plan = (
+        db.query(PlanTrabajo)
+        .filter(PlanTrabajo.paciente_id == paciente_id)
+        .order_by(PlanTrabajo.fecha_creacion.desc())
+        .first()
+    )
+
+    if not plan:
+        return {"message": "No hay plan disponible"}
+
+    return _serializar_plan(plan)
+
+
+# ================================================================
+# OBTENER HISTORIAL DE PLANES
 # ================================================================
 @router.get("/historial/{paciente_id}")
 def historial_planes(paciente_id: int, db: Session = Depends(get_db)):
@@ -156,34 +128,28 @@ def historial_planes(paciente_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-    return planes
+    return [_serializar_plan(plan) for plan in planes]
 
 
 # ================================================================
-# OBTENER OBJETIVOS
+# OBTENER DETALLE DE PLAN
 # ================================================================
 @router.get("/{plan_id}")
 def obtener_plan_detalle(plan_id: int, db: Session = Depends(get_db)):
-    plan = (
-        db.query(PlanTrabajo)
-        .filter(PlanTrabajo.id == plan_id)
-        .first()
-    )
+    plan = db.query(PlanTrabajo).filter(PlanTrabajo.id == plan_id).first()
 
     if not plan:
         return {"message": "Plan no encontrado"}
 
-    return plan
+    return _serializar_plan(plan)
+
 
 # ================================================================
 # CERRAR PLAN DE TRABAJO
 # ================================================================
 @router.put("/cerrar/{plan_id}")
 def cerrar_plan(plan_id: int, db: Session = Depends(get_db)):
-
-    plan = db.query(PlanTrabajo).filter(
-        PlanTrabajo.id == plan_id
-    ).first()
+    plan = db.query(PlanTrabajo).filter(PlanTrabajo.id == plan_id).first()
 
     if not plan:
         return {"message": "Plan no encontrado"}
@@ -195,39 +161,43 @@ def cerrar_plan(plan_id: int, db: Session = Depends(get_db)):
 
 
 # ================================================================
-# ACTUALIZAR OBJETIVOS
+# ACTUALIZAR CUMPLIMIENTO DE UN ACUERDO
 # ================================================================
 @router.put("/objetivo/{objetivo_id}")
 def actualizar_cumplimiento(
     objetivo_id: int,
     data: dict,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-
-    objetivo = db.query(ObjetivoPlan).filter(
-        ObjetivoPlan.id == objetivo_id
-    ).first()
+    objetivo = db.query(ObjetivoPlan).filter(ObjetivoPlan.id == objetivo_id).first()
 
     if not objetivo:
         return {"message": "Objetivo no encontrado"}
 
-    objetivo.cumplimiento = data.get("cumplimiento", 0)
+    cumplimiento = int(data.get("cumplimiento", 0))
+    objetivo.cumplimiento = max(0, min(100, cumplimiento))
+
+    if "seguimiento" in data:
+        objetivo.seguimiento = data.get("seguimiento")
+
+    if "fecha_revision" in data:
+        objetivo.fecha_revision = data.get("fecha_revision")
+
     db.commit()
 
     return {"message": "Cumplimiento actualizado"}
 
 
 # ================================================================
-# EVALUAR OBJETIVOS
+# EVALUAR PLAN COMPLETO
 # ================================================================
 @router.put("/evaluar/{plan_id}")
-def evaluar_plan(plan_id: int,
-                 data: dict,
-                 db: Session = Depends(get_db)):
-
-    plan = db.query(PlanTrabajo).filter(
-        PlanTrabajo.id == plan_id
-    ).first()
+def evaluar_plan(
+    plan_id: int,
+    data: dict,
+    db: Session = Depends(get_db),
+):
+    plan = db.query(PlanTrabajo).filter(PlanTrabajo.id == plan_id).first()
 
     if not plan:
         return {"message": "Plan no encontrado"}
@@ -235,17 +205,25 @@ def evaluar_plan(plan_id: int,
     objetivos_data = data.get("objetivos", [])
 
     for obj_data in objetivos_data:
-
-        objetivo = db.query(ObjetivoPlan).filter(
-            ObjetivoPlan.id == obj_data.get("id"),
-            ObjetivoPlan.plan_id == plan_id
-        ).first()
+        objetivo = (
+            db.query(ObjetivoPlan)
+            .filter(
+                ObjetivoPlan.id == obj_data.get("id"),
+                ObjetivoPlan.plan_id == plan_id,
+            )
+            .first()
+        )
 
         if objetivo:
-            objetivo.cumplimiento = obj_data.get("cumplimiento", 0)
+            cumplimiento = int(obj_data.get("cumplimiento", 0))
+            objetivo.cumplimiento = max(0, min(100, cumplimiento))
+
+            if "seguimiento" in obj_data:
+                objetivo.seguimiento = obj_data.get("seguimiento")
+
+            if "fecha_revision" in obj_data:
+                objetivo.fecha_revision = obj_data.get("fecha_revision")
 
     db.commit()
 
     return {"message": "Evaluación guardada correctamente"}
-
-
