@@ -185,7 +185,11 @@ def register(payload: RegisterIn, req: Request, db: Session = Depends(get_db)):
 # LOGIN
 # Permite iniciar sesión con:
 # - correo electrónico
-# - celular nacional de 10 dígitos + lada seleccionada en Flutter
+# - celular nacional + lada seleccionada en Flutter
+#
+# Reglas de teléfono:
+# - México (+52): 10 dígitos
+# - Perú (+51): 9 dígitos
 # ============================================================
 @app.post("/login", response_model=TokenOut)
 def login(payload: LoginIn, db: Session = Depends(get_db)):
@@ -197,12 +201,31 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
     if "@" in identifier:
         user = db.query(User).filter(User.email == identifier).first()
 
-    # Login con celular de 10 dígitos
-    elif identifier.isdigit() and len(identifier) == 10:
+    # Login con celular nacional
+    elif identifier.isdigit() and len(identifier) in [9, 10]:
         if not payload.country_code:
             raise HTTPException(
                 status_code=400,
                 detail="Debes seleccionar la lada del país",
+            )
+
+        if payload.country_code not in ["+52", "+51"]:
+            raise HTTPException(
+                status_code=400,
+                detail="La lada debe ser +52 para México o +51 para Perú",
+            )
+
+        # Validación por país
+        if payload.country_code == "+52" and len(identifier) != 10:
+            raise HTTPException(
+                status_code=400,
+                detail="El celular de México debe tener 10 dígitos",
+            )
+
+        if payload.country_code == "+51" and len(identifier) != 9:
+            raise HTTPException(
+                status_code=400,
+                detail="El celular de Perú debe tener 9 dígitos",
             )
 
         full_phone_number = f"{payload.country_code}{identifier}"
@@ -216,7 +239,7 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
     else:
         raise HTTPException(
             status_code=400,
-            detail="Ingresa un correo válido o un celular de 10 dígitos",
+            detail="Ingresa un correo válido o un celular nacional válido",
         )
 
     if not user or not verify_password(payload.password, user.password_hash):
