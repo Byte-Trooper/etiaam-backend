@@ -1,5 +1,5 @@
 # schemas.py
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 import re
@@ -31,34 +31,18 @@ class RegisterIn(BaseModel):
 
     @field_validator("phone_national")
     @classmethod
-    def validate_phone_national(cls, value, info):
-        country_code = info.data.get("country_code")
-
-        if country_code == "+52":
-            if not re.fullmatch(r"\d{10}", value):
-                raise ValueError("El número celular de México debe tener exactamente 10 dígitos")
-        elif country_code == "+51":
-            if not re.fullmatch(r"\d{9}", value):
-                raise ValueError("El número celular de Perú debe tener exactamente 9 dígitos")
-        else:
-            raise ValueError("Selecciona una lada válida")
-
+    def validate_phone_national(cls, value):
+        if not re.fullmatch(r"\d{10}", value):
+            raise ValueError("El número celular debe tener exactamente 10 dígitos")
         return value
 
     @field_validator("phone_number")
     @classmethod
-    def validate_phone_number(cls, value, info):
-        country_code = info.data.get("country_code")
-
-        if country_code == "+52":
-            if not re.fullmatch(r"\+52\d{10}", value):
-                raise ValueError("El número completo de México debe incluir lada +52 y 10 dígitos")
-        elif country_code == "+51":
-            if not re.fullmatch(r"\+51\d{9}", value):
-                raise ValueError("El número completo de Perú debe incluir lada +51 y 9 dígitos")
-        else:
-            raise ValueError("Selecciona una lada válida")
-
+    def validate_phone_number(cls, value):
+        if not re.fullmatch(r"\+\d{12}", value):
+            raise ValueError(
+                "El número completo debe incluir lada y 10 dígitos. Ejemplo: +528331234567"
+            )
         return value
 
 
@@ -84,7 +68,7 @@ class LoginIn(BaseModel):
         is_phone = re.fullmatch(r"\d{9,10}", value)
 
         if not is_email and not is_phone:
-            raise ValueError("Ingresa un correo válido o un celular nacional válido")
+            raise ValueError("Ingresa un correo válido o un celular nacional de 9 o 10 dígitos")
 
         return value
 
@@ -95,6 +79,26 @@ class LoginIn(BaseModel):
             raise ValueError("La lada debe ser +52 para México o +51 para Perú")
         return value
 
+    @model_validator(mode="after")
+    def validate_phone_length_by_country(self):
+        """
+        Valida la longitud del celular según la lada seleccionada.
+        Si identifier es correo, no aplica validación por lada.
+        """
+        identifier = self.identifier.strip()
+
+        if "@" in identifier:
+            return self
+
+        if self.country_code == "+52" and not re.fullmatch(r"\d{10}", identifier):
+            raise ValueError("El celular de México debe tener exactamente 10 dígitos")
+
+        if self.country_code == "+51" and not re.fullmatch(r"\d{9}", identifier):
+            raise ValueError("El celular de Perú debe tener exactamente 9 dígitos")
+
+        # Si no llegó country_code, se permite continuar para no bloquear login por correo/celular
+        # en clientes antiguos. La lógica de app.py debe construir el teléfono con la lada cuando aplique.
+        return self
 
 class TokenOut(BaseModel):
     access_token: str
@@ -211,7 +215,7 @@ class EvaluationOut(EvaluationIn):
 
 class UserOut(BaseModel):
     id: int
-    email: str
+    email: Optional[str] = None
     full_name: Optional[str]
     user_type: str
 
@@ -256,16 +260,17 @@ class CompetenciasOut(BaseModel):
 #     SCHEMA PARA PLAN DE TRABAJO
 # =============================================================
 class ObjetivoPlanCreate(BaseModel):
-    descripcion: str
-    actividad: str
+    descripcion: str  # Meta del acuerdo
+    actividad: str    # Acción acordada
     recursos: Optional[str] = None
     seguimiento: Optional[str] = None
+    fecha_revision: Optional[str] = None
     cumplimiento: int = 0
 
 
 class PlanTrabajoCreate(BaseModel):
     paciente_id: int
-    profesional_id: int
+    profesional_id: Optional[int] = None
     objetivo_principal: str
     plan_ejecucion: str
     recursos_necesarios: Optional[str] = None
@@ -276,7 +281,7 @@ class PlanTrabajoCreate(BaseModel):
 class PlanTrabajoOut(BaseModel):
     id: int
     paciente_id: int
-    profesional_id: int
+    profesional_id: Optional[int] = None
     fecha_creacion: datetime
     objetivo_principal: str
     plan_ejecucion: str
