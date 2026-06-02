@@ -388,6 +388,92 @@ def resumen_general_paciente(
     }
 
 
+
+# ============================================================
+# HISTORIAL DE EVALUACIONES POR INSTRUMENTO
+# Devuelve todas las evaluaciones de un paciente para un test_type.
+# IMPORTANTE: esta ruta debe ir antes de /{user_id} para evitar conflicto.
+# ============================================================
+
+@router.get("/history/{user_id}/{test_type}")
+def historial_evaluaciones_por_instrumento(
+    user_id: int,
+    test_type: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    # El paciente puede ver su propio historial.
+    # El profesional puede ver el historial de sus pacientes.
+    if current_user["id"] != user_id and current_user.get("user_type") != "profesional":
+        raise HTTPException(status_code=403, detail="Acceso restringido")
+
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    config = TEST_RESUMEN_CONFIG.get(test_type)
+
+    evaluaciones = (
+        db.query(Evaluation)
+        .filter(
+            Evaluation.user_id == user_id,
+            Evaluation.test_type == test_type,
+        )
+        .order_by(Evaluation.fecha_aplicacion.asc())
+        .all()
+    )
+
+    items = []
+
+    for e in evaluaciones:
+        data = _evaluation_to_dict(e)
+        respuestas = data.get("respuestas") or {}
+        score = data.get("score") or 0
+
+        # Caso especial: comunicación médico usa solo las preguntas 1 a 3.
+        if config and config.get("usar_score_respuestas"):
+            campo_score = config.get("usar_score_respuestas")
+            if isinstance(respuestas, dict) and respuestas.get(campo_score) is not None:
+                try:
+                    score = int(respuestas.get(campo_score))
+                except Exception:
+                    score = data.get("score") or 0
+
+        score_maximo = int(config.get("score_maximo", 0)) if config else None
+        mayor_mejor = bool(config.get("mayor_mejor", True)) if config else True
+        nivel = _nivel_resumen(score, score_maximo, mayor_mejor) if score_maximo else {
+            "nivel": "Sin interpretación",
+            "semaforo": "gris",
+        }
+
+        items.append({
+            "id": data.get("id"),
+            "user_id": data.get("user_id"),
+            "evaluador_id": data.get("evaluador_id"),
+            "test_type": data.get("test_type"),
+            "titulo": config.get("titulo") if config else test_type,
+            "score": score,
+            "score_maximo": score_maximo,
+            "mayor_mejor": mayor_mejor,
+            "nivel": nivel["nivel"],
+            "semaforo": nivel["semaforo"],
+            "fecha": data.get("fecha"),
+            "fecha_aplicacion": data.get("fecha_aplicacion"),
+            "respuestas": respuestas,
+            "observaciones": data.get("observaciones"),
+        })
+
+    return {
+        "user_id": user_id,
+        "test_type": test_type,
+        "titulo": config.get("titulo") if config else test_type,
+        "score_maximo": int(config.get("score_maximo", 0)) if config else None,
+        "mayor_mejor": bool(config.get("mayor_mejor", True)) if config else True,
+        "total": len(items),
+        "items": items,
+    }
+
 # ============================================================
 # OBTENER HISTORIAL DE EVALUACIONES
 # ============================================================
