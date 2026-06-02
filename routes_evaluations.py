@@ -590,4 +590,3 @@ def ultimo_automanejo_paciente(user_id: int, db: Session = Depends(get_db)):
         "fecha": data["fecha"],
         "respuestas": data["respuestas"],
     }
-
