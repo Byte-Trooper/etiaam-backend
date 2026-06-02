@@ -180,8 +180,6 @@ def create_evaluation(payload: dict, db: Session = Depends(get_db)):
     return _evaluation_to_dict(new_eval)
 
 
-
-
 # ============================================================
 # RESUMEN GENERAL DEL PACIENTE
 # Devuelve la última evaluación disponible por instrumento.
@@ -561,6 +559,44 @@ def guardar_competencias(
         else None,
     )
 
+@router.get("/{user_id}")
+
+@router.get("/competencias/ultimo")
+def obtener_ultima_competencia(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = current_user["id"]
+
+    registro = (
+        db.query(CompetenciasProfesionales)
+        .filter(CompetenciasProfesionales.user_id == user_id)
+        .order_by(CompetenciasProfesionales.fecha_aplicacion.desc())
+        .first()
+    )
+
+    if not registro:
+        return {"ultimo": False}
+
+    try:
+        respuestas = json.loads(registro.respuestas)
+    except Exception:
+        respuestas = {}
+
+    return {
+        "ultimo": True,
+        "id": registro.id,
+        "user_id": registro.user_id,
+        "respuestas": respuestas,
+        "f1_promedio": registro.f1_promedio,
+        "f2_promedio": registro.f2_promedio,
+        "f3_promedio": registro.f3_promedio,
+        "f4_promedio": registro.f4_promedio,
+        "puntaje_total": registro.puntaje_total,
+        "fecha_aplicacion": registro.fecha_aplicacion.isoformat()
+        if registro.fecha_aplicacion
+        else None,
+    }
 
 # ============================================================
 # ÚLTIMA EVALUACIÓN DE AUTOMANEJO DEL PACIENTE
