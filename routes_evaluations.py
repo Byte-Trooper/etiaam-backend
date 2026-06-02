@@ -211,7 +211,7 @@ TEST_RESUMEN_CONFIG = {
         "key": "medicamentos",
         "titulo": "Medicamentos / Indicaciones",
         "score_maximo": 4,
-        "mayor_mejor": False,
+        "mayor_mejor": True,
     },
     "datos_familiares": {
         "key": "apoyo_familiar",
