@@ -22,13 +22,60 @@ AUTOMANEJO_TEST_TYPES = {
 }
 
 
+TEST_RESUMEN_CONFIG = {
+    "automanejo_paciente": {
+        "key": "automanejo",
+        "titulo": "Automanejo",
+        "score_maximo": 96,
+        "mayor_mejor": True,
+    },
+    "autoeficacia_enfermedad_cronica": {
+        "key": "autoeficacia",
+        "titulo": "Autoeficacia",
+        "score_maximo": 60,
+        "mayor_mejor": True,
+    },
+    "comunicacion_medico": {
+        "key": "comunicacion_medico",
+        "titulo": "Comunicación con el médico",
+        "score_maximo": 15,
+        "mayor_mejor": True,
+        "usar_score_respuestas": "score_comunicacion",
+    },
+    "medicamentos_indicaciones": {
+        "key": "medicamentos",
+        "titulo": "Medicamentos / Indicaciones",
+        "score_maximo": 4,
+        "mayor_mejor": False,
+    },
+    "datos_familiares": {
+        "key": "apoyo_familiar",
+        "titulo": "Apoyo familiar",
+        "score_maximo": 28,
+        "mayor_mejor": True,
+    },
+    "afectos_emociones": {
+        "key": "afectos_emociones",
+        "titulo": "Afectos / Emociones",
+        "score_maximo": 24,
+        "mayor_mejor": False,
+    },
+    "actividad_fisica": {
+        "key": "actividad_fisica",
+        "titulo": "Actividad física",
+        "score_maximo": 24,
+        "mayor_mejor": True,
+    },
+}
+
+
 # ============================================================
 # FUNCIONES AUXILIARES
 # ============================================================
 
 def _parse_json(value):
     """
-    Convierte respuestas_json a diccionario.
+    Convierte respuestas_json/respuestas a diccionario.
     Puede venir como dict, string JSON o None.
     """
     if value is None:
@@ -112,7 +159,7 @@ def _evaluation_to_dict(e):
     """
     Convierte una evaluación a JSON de respuesta.
     Importante: recalcula score desde respuestas_json para que también
-    evaluaciones antiguas se muestren con score total.
+    evaluaciones antiguas de automanejo se muestren con score total.
     """
     if not e:
         return None
@@ -138,100 +185,6 @@ def _evaluation_to_dict(e):
     }
 
 
-# ============================================================
-# GUARDAR EVALUACIÓN GENERAL
-# AUTOMANEJO PACIENTE / PROFESIONAL
-# ============================================================
-
-@router.post("")
-def create_evaluation(payload: dict, db: Session = Depends(get_db)):
-
-    if "user_id" not in payload or "test_type" not in payload:
-        raise HTTPException(
-            status_code=400,
-            detail="Faltan campos obligatorios"
-        )
-
-    test_type = payload.get("test_type")
-    respuestas = _obtener_respuestas_desde_payload(payload)
-
-    # Nuevo cálculo correcto:
-    # score = suma total de las respuestas del instrumento.
-    score_calculado = _calcular_score_automanejo(
-        test_type,
-        respuestas,
-        score_fallback=payload.get("score"),
-    )
-
-    new_eval = Evaluation(
-        user_id=payload.get("user_id"),
-        evaluador_id=payload.get("evaluador_id"),
-        test_type=test_type,
-        score=score_calculado,
-        observaciones=payload.get("observaciones", ""),
-        respuestas_json=json.dumps(respuestas),
-        fecha_aplicacion=datetime.utcnow(),
-    )
-
-    db.add(new_eval)
-    db.commit()
-    db.refresh(new_eval)
-
-    return _evaluation_to_dict(new_eval)
-
-
-# ============================================================
-# RESUMEN GENERAL DEL PACIENTE
-# Devuelve la última evaluación disponible por instrumento.
-# ============================================================
-
-TEST_RESUMEN_CONFIG = {
-    "automanejo_paciente": {
-        "key": "automanejo",
-        "titulo": "Automanejo",
-        "score_maximo": 96,
-        "mayor_mejor": True,
-    },
-    "autoeficacia_enfermedad_cronica": {
-        "key": "autoeficacia",
-        "titulo": "Autoeficacia",
-        "score_maximo": 60,
-        "mayor_mejor": True,
-    },
-    "comunicacion_medico": {
-        "key": "comunicacion_medico",
-        "titulo": "Comunicación con el médico",
-        "score_maximo": 15,
-        "mayor_mejor": True,
-        "usar_score_respuestas": "score_comunicacion",
-    },
-    "medicamentos_indicaciones": {
-        "key": "medicamentos",
-        "titulo": "Medicamentos / Indicaciones",
-        "score_maximo": 4,
-        "mayor_mejor": True,
-    },
-    "datos_familiares": {
-        "key": "apoyo_familiar",
-        "titulo": "Apoyo familiar",
-        "score_maximo": 28,
-        "mayor_mejor": True,
-    },
-    "afectos_emociones": {
-        "key": "afectos_emociones",
-        "titulo": "Afectos / Emociones",
-        "score_maximo": 24,
-        "mayor_mejor": False,
-    },
-    "actividad_fisica": {
-        "key": "actividad_fisica",
-        "titulo": "Actividad física",
-        "score_maximo": 24,
-        "mayor_mejor": True,
-    },
-}
-
-
 def _nivel_resumen(score: int, score_maximo: int, mayor_mejor: bool):
     if score_maximo <= 0:
         return {"nivel": "Sin interpretación", "semaforo": "gris"}
@@ -245,7 +198,7 @@ def _nivel_resumen(score: int, score_maximo: int, mayor_mejor: bool):
             return {"nivel": "Seguimiento", "semaforo": "amarillo"}
         return {"nivel": "Necesidad de intervención", "semaforo": "rojo"}
 
-    # Para afectos/emociones, menor puntaje es mejor.
+    # Para instrumentos donde menor puntaje es mejor.
     if porcentaje <= 0.33:
         return {"nivel": "Fortaleza", "semaforo": "verde"}
     if porcentaje <= 0.66:
@@ -287,6 +240,51 @@ def _item_resumen(e, config):
     }
 
 
+# ============================================================
+# GUARDAR EVALUACIÓN GENERAL
+# AUTOMANEJO PACIENTE / PROFESIONAL / TESTS PACIENTE
+# ============================================================
+
+@router.post("")
+def create_evaluation(payload: dict, db: Session = Depends(get_db)):
+
+    if "user_id" not in payload or "test_type" not in payload:
+        raise HTTPException(
+            status_code=400,
+            detail="Faltan campos obligatorios"
+        )
+
+    test_type = payload.get("test_type")
+    respuestas = _obtener_respuestas_desde_payload(payload)
+
+    score_calculado = _calcular_score_automanejo(
+        test_type,
+        respuestas,
+        score_fallback=payload.get("score"),
+    )
+
+    new_eval = Evaluation(
+        user_id=payload.get("user_id"),
+        evaluador_id=payload.get("evaluador_id"),
+        test_type=test_type,
+        score=score_calculado,
+        observaciones=payload.get("observaciones", ""),
+        respuestas_json=json.dumps(respuestas),
+        fecha_aplicacion=datetime.utcnow(),
+    )
+
+    db.add(new_eval)
+    db.commit()
+    db.refresh(new_eval)
+
+    return _evaluation_to_dict(new_eval)
+
+
+# ============================================================
+# RESUMEN GENERAL DEL PACIENTE
+# Devuelve la última evaluación disponible por instrumento.
+# ============================================================
+
 @router.get("/resumen-general/{user_id}")
 def resumen_general_paciente(
     user_id: int,
@@ -297,7 +295,6 @@ def resumen_general_paciente(
     # El profesional puede ver el resumen de sus pacientes.
     if current_user["id"] != user_id and current_user.get("user_type") != "profesional":
         raise HTTPException(status_code=403, detail="Acceso restringido")
-
 
     user = db.query(User).filter(User.id == user_id).first()
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
@@ -349,7 +346,6 @@ def resumen_general_paciente(
                 "evaluacion_id": None,
             })
 
-    # Última evaluación profesional de automanejo como referencia clínica.
     profesional = (
         db.query(Evaluation)
         .filter(
@@ -385,6 +381,137 @@ def resumen_general_paciente(
         "items": items,
     }
 
+
+# ============================================================
+# ÚLTIMO RESULTADO DE COMPETENCIAS PROFESIONALES
+# Debe ir antes de /{user_id} para evitar conflicto de rutas.
+# ============================================================
+
+@router.get("/competencias/ultimo")
+def obtener_ultima_competencia(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = current_user["id"]
+
+    registro = (
+        db.query(CompetenciasProfesionales)
+        .filter(CompetenciasProfesionales.user_id == user_id)
+        .order_by(CompetenciasProfesionales.fecha_aplicacion.desc())
+        .first()
+    )
+
+    if not registro:
+        return {"ultimo": False}
+
+    try:
+        respuestas = json.loads(registro.respuestas)
+    except Exception:
+        respuestas = {}
+
+    preguntas = []
+    if isinstance(respuestas, dict) and isinstance(respuestas.get("preguntas"), list):
+        for item in respuestas.get("preguntas")[:29]:
+            try:
+                preguntas.append(int(float(item)))
+            except Exception:
+                preguntas.append(0)
+
+    if preguntas:
+        puntaje_total = int(sum(preguntas))
+    else:
+        try:
+            puntaje_total = int(registro.puntaje_total or 0)
+        except Exception:
+            puntaje_total = 0
+
+    return {
+        "ultimo": True,
+        "id": registro.id,
+        "user_id": registro.user_id,
+        "respuestas": respuestas,
+        "f1_promedio": registro.f1_promedio,
+        "f2_promedio": registro.f2_promedio,
+        "f3_promedio": registro.f3_promedio,
+        "f4_promedio": registro.f4_promedio,
+        "puntaje_total": puntaje_total,
+        "score_maximo": 116,
+        "fecha_aplicacion": registro.fecha_aplicacion.isoformat()
+        if registro.fecha_aplicacion
+        else None,
+    }
+
+
+# ============================================================
+# HISTORIAL DE COMPETENCIAS PROFESIONALES
+# Devuelve todas las evaluaciones del profesional autenticado.
+# Debe ir antes de /{user_id} para evitar conflicto de rutas.
+# ============================================================
+
+@router.get("/competencias/historial")
+def historial_competencias_profesionales(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = current_user["id"]
+
+    registros = (
+        db.query(CompetenciasProfesionales)
+        .filter(CompetenciasProfesionales.user_id == user_id)
+        .order_by(CompetenciasProfesionales.fecha_aplicacion.asc())
+        .all()
+    )
+
+    items = []
+
+    for registro in registros:
+        try:
+            respuestas = json.loads(registro.respuestas)
+        except Exception:
+            respuestas = {}
+
+        preguntas = []
+        if isinstance(respuestas, dict) and isinstance(respuestas.get("preguntas"), list):
+            for item in respuestas.get("preguntas")[:29]:
+                try:
+                    preguntas.append(int(float(item)))
+                except Exception:
+                    preguntas.append(0)
+
+        if preguntas:
+            puntaje_total = int(sum(preguntas))
+        else:
+            try:
+                puntaje_total = int(registro.puntaje_total or 0)
+            except Exception:
+                puntaje_total = 0
+
+        items.append({
+            "id": registro.id,
+            "user_id": registro.user_id,
+            "respuestas": respuestas,
+            "puntaje_total": puntaje_total,
+            "score": puntaje_total,
+            "score_maximo": 116,
+            "f1_promedio": registro.f1_promedio,
+            "f2_promedio": registro.f2_promedio,
+            "f3_promedio": registro.f3_promedio,
+            "f4_promedio": registro.f4_promedio,
+            "fecha_aplicacion": registro.fecha_aplicacion.isoformat()
+            if registro.fecha_aplicacion
+            else None,
+            "fecha": registro.fecha_aplicacion.isoformat()
+            if registro.fecha_aplicacion
+            else None,
+        })
+
+    return {
+        "user_id": user_id,
+        "titulo": "Competencias profesionales",
+        "score_maximo": 116,
+        "total": len(items),
+        "items": items,
+    }
 
 
 # ============================================================
@@ -472,28 +599,21 @@ def historial_evaluaciones_por_instrumento(
         "items": items,
     }
 
-# ============================================================
-# OBTENER HISTORIAL DE EVALUACIONES
-# ============================================================
-
-@router.get("/{user_id}")
-def get_evaluations(user_id: int, db: Session = Depends(get_db)):
-    evaluations = (
-        db.query(Evaluation)
-        .filter(Evaluation.user_id == user_id)
-        .order_by(Evaluation.fecha_aplicacion.desc())
-        .all()
-    )
-
-    return [_evaluation_to_dict(e) for e in evaluations]
-
 
 # ============================================================
 # COMPARACIÓN PACIENTE vs PROFESIONAL
 # ============================================================
 
 @router.get("/compare/{user_id}")
-def compare_last_evaluations(user_id: int, db: Session = Depends(get_db)):
+def compare_last_evaluations(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    # El paciente puede ver su propia comparación.
+    # El profesional puede ver la comparación de sus pacientes.
+    if current_user["id"] != user_id and current_user.get("user_type") != "profesional":
+        raise HTTPException(status_code=403, detail="Acceso restringido")
 
     paciente = (
         db.query(Evaluation)
@@ -559,51 +679,19 @@ def guardar_competencias(
         else None,
     )
 
-@router.get("/{user_id}")
-
-@router.get("/competencias/ultimo")
-def obtener_ultima_competencia(
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    user_id = current_user["id"]
-
-    registro = (
-        db.query(CompetenciasProfesionales)
-        .filter(CompetenciasProfesionales.user_id == user_id)
-        .order_by(CompetenciasProfesionales.fecha_aplicacion.desc())
-        .first()
-    )
-
-    if not registro:
-        return {"ultimo": False}
-
-    try:
-        respuestas = json.loads(registro.respuestas)
-    except Exception:
-        respuestas = {}
-
-    return {
-        "ultimo": True,
-        "id": registro.id,
-        "user_id": registro.user_id,
-        "respuestas": respuestas,
-        "f1_promedio": registro.f1_promedio,
-        "f2_promedio": registro.f2_promedio,
-        "f3_promedio": registro.f3_promedio,
-        "f4_promedio": registro.f4_promedio,
-        "puntaje_total": registro.puntaje_total,
-        "fecha_aplicacion": registro.fecha_aplicacion.isoformat()
-        if registro.fecha_aplicacion
-        else None,
-    }
 
 # ============================================================
 # ÚLTIMA EVALUACIÓN DE AUTOMANEJO DEL PACIENTE
 # ============================================================
 
 @router.get("/paciente/ultimo/{user_id}")
-def ultimo_automanejo_paciente(user_id: int, db: Session = Depends(get_db)):
+def ultimo_automanejo_paciente(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user["id"] != user_id and current_user.get("user_type") != "profesional":
+        raise HTTPException(status_code=403, detail="Acceso restringido")
 
     eval = (
         db.query(Evaluation)
@@ -626,3 +714,27 @@ def ultimo_automanejo_paciente(user_id: int, db: Session = Depends(get_db)):
         "fecha": data["fecha"],
         "respuestas": data["respuestas"],
     }
+
+
+# ============================================================
+# OBTENER HISTORIAL DE EVALUACIONES GENERAL
+# IMPORTANTE: esta ruta dinámica debe ir hasta el final.
+# ============================================================
+
+@router.get("/{user_id}")
+def get_evaluations(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user["id"] != user_id and current_user.get("user_type") != "profesional":
+        raise HTTPException(status_code=403, detail="Acceso restringido")
+
+    evaluations = (
+        db.query(Evaluation)
+        .filter(Evaluation.user_id == user_id)
+        .order_by(Evaluation.fecha_aplicacion.desc())
+        .all()
+    )
+
+    return [_evaluation_to_dict(e) for e in evaluations]
