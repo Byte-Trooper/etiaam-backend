@@ -23,6 +23,7 @@ from email_service import send_password_reset_email
 from routes_profile import router as profile_router
 from routes_evaluations import router as evaluations_router
 from routes_plan_trabajo import router as plan_router
+from routes_medications import router as medications_router
 
 
 app = FastAPI(title="ETIAAM API", version="1.0.0")
@@ -51,8 +52,9 @@ app.add_middleware(
 app.include_router(profile_router)
 app.include_router(evaluations_router)
 app.include_router(plan_router)
+app.include_router(medications_router)
 
-print("Routers cargados correctamente: /api/profile, /api/evaluations y /api/plan activos")
+print("Routers cargados correctamente: /api/profile, /api/evaluations, /api/plan y /api/medications activos")
 
 
 # ============================================================

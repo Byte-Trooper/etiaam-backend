@@ -49,6 +49,7 @@ class User(Base):
     profile = relationship("Profile", back_populates="user", uselist=False)
     evaluations = relationship("Evaluation", back_populates="user")
     competencias = relationship("CompetenciasProfesionales", back_populates="user")
+    medications = relationship("PatientMedication", back_populates="user")
 
 
 # ================================================================
@@ -153,6 +154,35 @@ class CompetenciasProfesionales(Base):
     fecha_aplicacion = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="competencias")
+
+
+
+
+# ================================================================
+# MEDICAMENTOS DEL PACIENTE
+# ================================================================
+class PatientMedication(Base):
+    __tablename__ = "patient_medications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    nombre = Column(String(150), nullable=False)
+    presentacion = Column(String(50), nullable=False)
+    cantidad = Column(String(20), nullable=False)
+    unidad = Column(String(50), nullable=False)
+
+    frecuencia_texto = Column(String(80), nullable=False)
+    frecuencia_horas = Column(Integer, nullable=True)
+    hora_inicio = Column(String(10), nullable=False)  # HH:MM
+
+    indicaciones = Column(Text, nullable=True)
+    activo = Column(Integer, default=1)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="medications")
 
 
 # ================================================================

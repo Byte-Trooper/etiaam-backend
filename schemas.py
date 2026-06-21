@@ -256,6 +256,53 @@ class CompetenciasOut(BaseModel):
         from_attributes = True
 
 
+
+
+# =============================================================
+#     SCHEMAS PARA MEDICAMENTOS DEL PACIENTE
+# =============================================================
+class PatientMedicationCreate(BaseModel):
+    nombre: str
+    presentacion: str
+    cantidad: str
+    unidad: str
+    frecuencia_texto: str
+    frecuencia_horas: Optional[int] = None
+    hora_inicio: str
+    indicaciones: Optional[str] = None
+
+
+class PatientMedicationUpdate(BaseModel):
+    nombre: Optional[str] = None
+    presentacion: Optional[str] = None
+    cantidad: Optional[str] = None
+    unidad: Optional[str] = None
+    frecuencia_texto: Optional[str] = None
+    frecuencia_horas: Optional[int] = None
+    hora_inicio: Optional[str] = None
+    indicaciones: Optional[str] = None
+    activo: Optional[int] = None
+
+
+class PatientMedicationOut(BaseModel):
+    id: int
+    user_id: int
+    nombre: str
+    presentacion: str
+    cantidad: str
+    unidad: str
+    frecuencia_texto: str
+    frecuencia_horas: Optional[int] = None
+    hora_inicio: str
+    indicaciones: Optional[str] = None
+    activo: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 # =============================================================
 #     SCHEMA PARA PLAN DE TRABAJO
 # =============================================================
