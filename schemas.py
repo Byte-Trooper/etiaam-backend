@@ -269,6 +269,9 @@ class PatientMedicationCreate(BaseModel):
     frecuencia_texto: str
     frecuencia_horas: Optional[int] = None
     hora_inicio: str
+    fecha_inicio: Optional[str] = None
+    fecha_fin: Optional[str] = None
+    duracion_texto: Optional[str] = None
     indicaciones: Optional[str] = None
 
 
@@ -280,6 +283,9 @@ class PatientMedicationUpdate(BaseModel):
     frecuencia_texto: Optional[str] = None
     frecuencia_horas: Optional[int] = None
     hora_inicio: Optional[str] = None
+    fecha_inicio: Optional[str] = None
+    fecha_fin: Optional[str] = None
+    duracion_texto: Optional[str] = None
     indicaciones: Optional[str] = None
     activo: Optional[int] = None
 
@@ -294,6 +300,9 @@ class PatientMedicationOut(BaseModel):
     frecuencia_texto: str
     frecuencia_horas: Optional[int] = None
     hora_inicio: str
+    fecha_inicio: Optional[str] = None
+    fecha_fin: Optional[str] = None
+    duracion_texto: Optional[str] = None
     indicaciones: Optional[str] = None
     activo: int
     created_at: Optional[datetime] = None

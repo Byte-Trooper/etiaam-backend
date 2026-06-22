@@ -81,6 +81,9 @@ def crear_medicamento(
         frecuencia_texto=payload.frecuencia_texto,
         frecuencia_horas=frecuencia_horas,
         hora_inicio=payload.hora_inicio,
+        fecha_inicio=payload.fecha_inicio,
+        fecha_fin=payload.fecha_fin,
+        duracion_texto=payload.duracion_texto,
         indicaciones=payload.indicaciones or "",
         activo=1,
     )

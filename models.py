@@ -177,6 +177,11 @@ class PatientMedication(Base):
     frecuencia_horas = Column(Integer, nullable=True)
     hora_inicio = Column(String(10), nullable=False)  # HH:MM
 
+    # Periodo del tratamiento. Si fecha_fin es NULL, se interpreta como uso continuo indicado.
+    fecha_inicio = Column(String(20), nullable=True)  # YYYY-MM-DD
+    fecha_fin = Column(String(20), nullable=True)     # YYYY-MM-DD o NULL
+    duracion_texto = Column(String(120), nullable=True)
+
     indicaciones = Column(Text, nullable=True)
     activo = Column(Integer, default=1)
 
