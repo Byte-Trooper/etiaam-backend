@@ -37,27 +37,81 @@ def _parse_time(value: str):
 
 
 def _medication_events_for_day(med: PatientMedication, selected_date: date):
+
+    # ===============================
+    # Validar rango del tratamiento
+    # ===============================
+
+    if med.fecha_inicio:
+        try:
+            inicio = datetime.strptime(
+                med.fecha_inicio,
+                "%Y-%m-%d"
+            ).date()
+
+            if selected_date < inicio:
+                return []
+
+        except Exception:
+            pass
+
+
+    if med.fecha_fin:
+        try:
+            fin = datetime.strptime(
+                med.fecha_fin,
+                "%Y-%m-%d"
+            ).date()
+
+            if selected_date > fin:
+                return []
+
+        except Exception:
+            pass
+
+
+    # ===============================
+    # Validar frecuencia
+    # ===============================
+
     if not med.frecuencia_horas or med.frecuencia_horas <= 0:
         return []
 
     start_time = _parse_time(med.hora_inicio)
+
     if start_time is None:
         return []
 
+
     events = []
-    current = datetime.combine(selected_date, start_time)
-    end = datetime.combine(selected_date, time(23, 59))
+
+    current = datetime.combine(
+        selected_date,
+        start_time
+    )
+
+    end = datetime.combine(
+        selected_date,
+        time(23, 59)
+    )
+
 
     while current <= end:
+
         events.append({
             "tipo": "medicamento",
             "origen": "medicamento",
             "id": med.id,
             "hora": current.strftime("%H:%M"),
             "titulo": med.nombre,
-            "descripcion": f"{med.cantidad} {med.unidad} · {med.frecuencia_texto}",
+            "descripcion":
+                f"{med.cantidad} {med.unidad} · {med.frecuencia_texto}",
         })
-        current += timedelta(hours=med.frecuencia_horas)
+
+        current += timedelta(
+            hours=med.frecuencia_horas
+        )
+
 
     return events
 
