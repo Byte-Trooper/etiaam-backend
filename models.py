@@ -50,6 +50,7 @@ class User(Base):
     evaluations = relationship("Evaluation", back_populates="user")
     competencias = relationship("CompetenciasProfesionales", back_populates="user")
     medications = relationship("PatientMedication", back_populates="user")
+    appointments = relationship("PatientAppointment", foreign_keys="PatientAppointment.paciente_id", back_populates="paciente")
 
 
 # ================================================================
@@ -183,6 +184,35 @@ class PatientMedication(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="medications")
+
+
+# ================================================================
+# CITAS MÉDICAS DEL PACIENTE
+# ================================================================
+class PatientAppointment(Base):
+    __tablename__ = "patient_appointments"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    paciente_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    profesional_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
+    unidad_medica = Column(String(150), nullable=True)
+    fecha_cita = Column(String(20), nullable=False)  # YYYY-MM-DD
+    hora_cita = Column(String(10), nullable=False)   # HH:MM
+
+    motivo = Column(String(150), nullable=False)
+    notas = Column(Text, nullable=True)
+
+    # JSON flexible: {"3_dias": true, "1_dia": true, "4_horas": true, "1_hora": true}
+    recordatorios_json = Column(Text, nullable=True)
+
+    estado = Column(String(30), default="programada")  # programada / cancelada / realizada
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    paciente = relationship("User", foreign_keys=[paciente_id], back_populates="appointments")
+    profesional = relationship("User", foreign_keys=[profesional_id])
 
 
 # ================================================================

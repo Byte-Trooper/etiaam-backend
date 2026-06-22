@@ -304,6 +304,64 @@ class PatientMedicationOut(BaseModel):
 
 
 # =============================================================
+#     SCHEMAS PARA CITAS MÉDICAS DEL PACIENTE
+# =============================================================
+class ProfesionalUnidadOut(BaseModel):
+    id: int
+    nombre: str
+    especialidad: Optional[str] = None
+    unidad_medica: Optional[str] = None
+
+
+class PatientAppointmentCreate(BaseModel):
+    profesional_id: int
+    fecha_cita: str
+    hora_cita: str
+    motivo: str
+    notas: Optional[str] = None
+    recordatorios: Optional[Dict[str, bool]] = None
+
+
+class PatientAppointmentUpdate(BaseModel):
+    profesional_id: Optional[int] = None
+    fecha_cita: Optional[str] = None
+    hora_cita: Optional[str] = None
+    motivo: Optional[str] = None
+    notas: Optional[str] = None
+    estado: Optional[str] = None
+    recordatorios: Optional[Dict[str, bool]] = None
+
+
+class PatientAppointmentOut(BaseModel):
+    id: int
+    paciente_id: int
+    profesional_id: Optional[int] = None
+    profesional_nombre: Optional[str] = None
+    profesional_especialidad: Optional[str] = None
+    unidad_medica: Optional[str] = None
+    fecha_cita: str
+    hora_cita: str
+    motivo: str
+    notas: Optional[str] = None
+    recordatorios: Optional[Dict[str, bool]] = None
+    estado: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CalendarEventOut(BaseModel):
+    tipo: str
+    titulo: str
+    hora: str
+    descripcion: Optional[str] = None
+    id: Optional[int] = None
+    origen: Optional[str] = None
+
+
+# =============================================================
 #     SCHEMA PARA PLAN DE TRABAJO
 # =============================================================
 class ObjetivoPlanCreate(BaseModel):

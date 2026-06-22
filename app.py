@@ -24,6 +24,8 @@ from routes_profile import router as profile_router
 from routes_evaluations import router as evaluations_router
 from routes_plan_trabajo import router as plan_router
 from routes_medications import router as medications_router
+from routes_appointments import router as appointments_router
+from routes_calendar import router as calendar_router
 
 
 app = FastAPI(title="ETIAAM API", version="1.0.0")
@@ -53,8 +55,10 @@ app.include_router(profile_router)
 app.include_router(evaluations_router)
 app.include_router(plan_router)
 app.include_router(medications_router)
+app.include_router(appointments_router)
+app.include_router(calendar_router)
 
-print("Routers cargados correctamente: /api/profile, /api/evaluations, /api/plan y /api/medications activos")
+print("Routers cargados correctamente: /api/profile, /api/evaluations, /api/plan, /api/medications, /api/appointments y /api/calendar activos")
 
 
 # ============================================================
