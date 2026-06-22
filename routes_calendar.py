@@ -25,7 +25,10 @@ def _parse_date(value: str | None):
     try:
         return datetime.strptime(value, "%Y-%m-%d").date()
     except Exception:
-        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Usa YYYY-MM-DD")
+        raise HTTPException(
+            status_code=400,
+            detail="Formato de fecha inválido. Usa YYYY-MM-DD",
+        )
 
 
 def _parse_time(value: str):
@@ -37,81 +40,55 @@ def _parse_time(value: str):
 
 
 def _medication_events_for_day(med: PatientMedication, selected_date: date):
-
-    # ===============================
-    # Validar rango del tratamiento
-    # ===============================
-
-    if med.fecha_inicio:
-        try:
-            inicio = datetime.strptime(
-                med.fecha_inicio,
-                "%Y-%m-%d"
-            ).date()
-
-            if selected_date < inicio:
-                return []
-
-        except Exception:
-            pass
-
-
-    if med.fecha_fin:
-        try:
-            fin = datetime.strptime(
-                med.fecha_fin,
-                "%Y-%m-%d"
-            ).date()
-
-            if selected_date > fin:
-                return []
-
-        except Exception:
-            pass
-
-
-    # ===============================
-    # Validar frecuencia
-    # ===============================
-
     if not med.frecuencia_horas or med.frecuencia_horas <= 0:
         return []
 
     start_time = _parse_time(med.hora_inicio)
-
     if start_time is None:
         return []
 
+    try:
+        fecha_inicio = (
+            datetime.strptime(med.fecha_inicio, "%Y-%m-%d").date()
+            if med.fecha_inicio
+            else selected_date
+        )
+    except Exception:
+        fecha_inicio = selected_date
+
+    try:
+        fecha_fin = (
+            datetime.strptime(med.fecha_fin, "%Y-%m-%d").date()
+            if med.fecha_fin
+            else selected_date
+        )
+    except Exception:
+        fecha_fin = selected_date
+
+    if selected_date < fecha_inicio or selected_date > fecha_fin:
+        return []
+
+    inicio_tratamiento = datetime.combine(fecha_inicio, start_time)
+    fin_tratamiento = datetime.combine(fecha_fin, time(23, 59))
+
+    inicio_dia = datetime.combine(selected_date, time(0, 0))
+    fin_dia = datetime.combine(selected_date, time(23, 59))
 
     events = []
+    current = inicio_tratamiento
 
-    current = datetime.combine(
-        selected_date,
-        start_time
-    )
+    while current <= fin_tratamiento:
+        if inicio_dia <= current <= fin_dia:
+            events.append({
+                "tipo": "medicamento",
+                "origen": "medicamento",
+                "id": med.id,
+                "hora": current.strftime("%H:%M"),
+                "titulo": med.nombre,
+                "descripcion": f"{med.cantidad} {med.unidad} · {med.frecuencia_texto}",
+            })
 
-    end = datetime.combine(
-        selected_date,
-        time(23, 59)
-    )
-
-
-    while current <= end:
-
-        events.append({
-            "tipo": "medicamento",
-            "origen": "medicamento",
-            "id": med.id,
-            "hora": current.strftime("%H:%M"),
-            "titulo": med.nombre,
-            "descripcion":
-                f"{med.cantidad} {med.unidad} · {med.frecuencia_texto}",
-        })
-
-        current += timedelta(
-            hours=med.frecuencia_horas
-        )
-
+        current += timedelta(hours=med.frecuencia_horas)
 
     return events
 
