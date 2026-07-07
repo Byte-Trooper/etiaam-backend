@@ -32,18 +32,49 @@ class RegisterIn(BaseModel):
     @field_validator("phone_national")
     @classmethod
     def validate_phone_national(cls, value):
-        if not re.fullmatch(r"\d{10}", value):
-            raise ValueError("El número celular debe tener exactamente 10 dígitos")
+        value = re.sub(r"\D", "", value.strip())
+
+        if not re.fullmatch(r"\d{9,10}", value):
+            raise ValueError(
+                "El número celular debe tener 10 dígitos para México o 9 dígitos para Perú"
+            )
+
         return value
 
     @field_validator("phone_number")
     @classmethod
     def validate_phone_number(cls, value):
-        if not re.fullmatch(r"\+\d{12}", value):
+        value = value.strip().replace(" ", "").replace("-", "")
+
+        if not re.fullmatch(r"\+\d{11,12}", value):
             raise ValueError(
-                "El número completo debe incluir lada y 10 dígitos. Ejemplo: +528331234567"
+                "El número completo debe incluir lada y número nacional. Ejemplos: +528331234567 o +51980973062"
             )
+
         return value
+
+    @model_validator(mode="after")
+    def validate_register_phone_by_country(self):
+        """
+        Valida el teléfono de registro según la lada seleccionada.
+        México (+52): 10 dígitos nacionales.
+        Perú (+51): 9 dígitos nacionales.
+        """
+        expected_length = 10 if self.country_code == "+52" else 9
+
+        if len(self.phone_national) != expected_length:
+            raise ValueError(
+                f"El celular para {self.country_code} debe tener exactamente {expected_length} dígitos"
+            )
+
+        expected_full_number = f"{self.country_code}{self.phone_national}"
+
+        if self.phone_number != expected_full_number:
+            raise ValueError(
+                f"El número completo debe ser {expected_full_number}"
+            )
+
+        return self
 
 
 class LoginIn(BaseModel):
